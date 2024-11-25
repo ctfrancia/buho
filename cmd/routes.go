@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
@@ -16,12 +15,10 @@ func (app *application) routes() *chi.Mux {
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/healthcheck", app.healthcheck)
 		r.Route("/users", func(r chi.Router) {
-			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-				app.logger.Info("GET /users")
-				fmt.Fprintf(w, "GET /users\n")
-			})
-			// r.Get("/", app.listUsers)
-			// r.Post("/", app.createUser)
+			r.Get("/", app.listUsers)
+			r.Post("/", app.createUser)
+			r.Get("/email/{email}", app.showUserByEmail)
+			r.Get("/search", app.searchUsers)
 			r.Route("/{id}", func(r chi.Router) {
 				// r.Get("/", app.showUser)
 				// r.Put("/", app.updateUser)

@@ -2,12 +2,16 @@ package main
 
 import (
 	"net/http"
-
-	"github.com/ctfrancia/buho/internal/model"
 )
 
 func (app *application) healthcheck(w http.ResponseWriter, r *http.Request) {
-	data := model.HealthCheck{Status: "available", Version: "1.0.0", Environment: app.config.env}
+	env := envelope{
+		"status": "available",
+		"system_info": map[string]string{
+			"version":     version,
+			"environment": app.config.env,
+		},
+	}
 
-	app.writeJSON(w, http.StatusOK, envelope{"info": data}, nil)
+	app.writeJSON(w, http.StatusOK, env, nil)
 }

@@ -19,19 +19,11 @@ func (app *application) routes() *chi.Mux {
 			r.Post("/", app.createUser)
 			r.Get("/email/{email}", app.showUserByEmail)
 			r.Get("/search", app.searchUsers)
-			r.Route("/{id}", func(r chi.Router) {
-				// r.Get("/", app.showUser)
-				// r.Put("/", app.updateUser)
-				// r.Delete("/", app.deleteUser)
-			})
 		})
 		r.Route("/tournaments", func(r chi.Router) {
-			// r.Get("/", app.listTournaments)
-			// r.Post("/", app.createTournament)
+			r.Post("/", app.createTournament)
+			r.Patch("/{id}", app.updateTournament)
 			r.Route("/{id}", func(r chi.Router) {
-				// r.Get("/", app.showTournament)
-				// r.Put("/", app.updateTournament)
-				// r.Delete("/", app.deleteTournament)
 			})
 		})
 	})

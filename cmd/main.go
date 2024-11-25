@@ -6,28 +6,45 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/ctfrancia/buho/internal/repository"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 const version = "1.0.0"
 
 type config struct {
 	env string
+	db  struct {
+		dsn          string
+		maxOpenConns int
+		maxIdleConns int
+		maxIdleTime  time.Duration
+	}
 }
 
 type application struct {
-	config config
-	logger *slog.Logger
+	config     config
+	logger     *slog.Logger
+	repository repository.Repository
 }
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	cfg := config{
-		env: "development",
+	var cfg config
+	cfg.env = "development"
+	cfg.db.dsn = os.Getenv("BUHO_DB_DSN")
+
+	db, err := openDB(cfg)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	app := &application{
-		config: cfg,
-		logger: logger,
+		config:     cfg,
+		logger:     logger,
+		repository: repository.New(db),
 	}
 
 	srv := http.Server{
@@ -41,8 +58,19 @@ func main() {
 
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func openDB(cfg config) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(cfg.db.dsn), &gorm.Config{TranslateError: true})
+	if err != nil {
+		return nil, err
+	}
+
+	// db.AutoMigrate(&models.User{}, &models.Token{}, &models.Tournament{}, &models.Team{})
+
+	return db, nil
 }

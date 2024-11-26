@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -70,7 +71,7 @@ func openDB(cfg config) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// db.AutoMigrate(&models.User{}, &models.Token{}, &models.Tournament{}, &models.Team{})
+	db.AutoMigrate(&model.Tournament{})
 
 	return db, nil
 }

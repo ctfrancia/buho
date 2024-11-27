@@ -1,19 +1,26 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
+	"golang.org/x/crypto/ssh"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-const version = "1.0.0"
+const (
+	version = "1.0.0"
+	// sshAddr is the address of the SSH server local only atm
+	sshAddr = "localhost:2022"
+)
 
 type config struct {
 	env string
@@ -56,6 +63,39 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
+
+	key, err := os.ReadFile("id_rsa")
+	if err != nil {
+		log.Fatal("Failed to load private key: ", err)
+	}
+
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		log.Fatal("Failed to parse private key: ", err)
+	}
+	auth := ssh.PublicKeys(signer)
+
+	// host key callback func
+	hostKeyCb := func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		// lookup and verify host key...
+		fmt.Println("hostname: ", hostname)
+		fmt.Println("remote: ", remote)
+		fmt.Println("key: ", key)
+		return nil
+	}
+
+	// ssh client config
+	config := &ssh.ClientConfig{
+		Auth:            []ssh.AuthMethod{auth},
+		HostKeyCallback: hostKeyCb,
+	}
+
+	// connect to ssh server
+	conn, err := ssh.Dial("tcp", sshAddr, config)
+	if err != nil {
+		log.Fatal("Failed to dial: ", err)
+	}
+	defer conn.Close()
 
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 

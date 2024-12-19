@@ -25,3 +25,4 @@ go.work.sum
 .env
 
 id_rsa*
+internal/sftp/pub_key

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -64,6 +65,7 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
+	// buho ssh server
 	key, err := os.ReadFile("id_rsa")
 	if err != nil {
 		log.Fatal("Failed to load private key: ", err)
@@ -75,19 +77,15 @@ func main() {
 	}
 	auth := ssh.PublicKeys(signer)
 
-	// host key callback func
-	hostKeyCb := func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-		// lookup and verify host key...
-		fmt.Println("hostname: ", hostname)
-		fmt.Println("remote: ", remote)
-		fmt.Println("key: ", key)
-		return nil
+	// buho-sftp public key
+	registeredPubKey, err := LoadRegisteredPublicKey("internal/sftp/pub_key")
+	if err != nil {
+		log.Fatal("Failed to load registered public key: ", err)
 	}
-
 	// ssh client config
 	config := &ssh.ClientConfig{
 		Auth:            []ssh.AuthMethod{auth},
-		HostKeyCallback: hostKeyCb,
+		HostKeyCallback: HostKeyCb(registeredPubKey),
 	}
 
 	// connect to ssh server
@@ -95,7 +93,49 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to dial: ", err)
 	}
+
 	defer conn.Close()
+
+	fmt.Println("connected to ssh server")
+	// open an SFTP session over an existing ssh connection.
+	client, err := sftp.NewClient(conn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Close()
+
+	fmt.Println("sftp client created")
+
+	// walk a directory
+	w := client.Walk("/home/user")
+	for w.Step() {
+		if w.Err() != nil {
+			continue
+		}
+		log.Println(w.Path())
+	}
+
+	// leave your mark
+	f, err := client.Create("hello.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err := f.Write([]byte("!Hello world!")); err != nil {
+		log.Fatal(err)
+	}
+	f.Close()
+
+	// check it's there
+	fi, err := client.Lstat("hello.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if fi == nil {
+		log.Fatal("file not found")
+	}
+
+	log.Println("----------", fi)
 
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 
@@ -114,4 +154,30 @@ func openDB(cfg config) (*gorm.DB, error) {
 	db.AutoMigrate(&model.Tournament{})
 
 	return db, nil
+}
+
+// TODO: Move this function to a separate package
+func LoadRegisteredPublicKey(path string) (ssh.PublicKey, error) {
+	pubKeyBytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read public key file: %w", err)
+	}
+
+	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(pubKeyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
+	}
+
+	return pubKey, nil
+}
+
+// TODO: Move this function to a separate package
+func HostKeyCb(registeredKey ssh.PublicKey) ssh.HostKeyCallback {
+	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		if string(key.Marshal()) == string(registeredKey.Marshal()) {
+			return nil
+		}
+
+		return fmt.Errorf("host key mismatch")
+	}
 }

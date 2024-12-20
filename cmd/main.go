@@ -2,19 +2,18 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"log/slog"
-	"net"
-	"net/http"
-	"os"
-	"time"
-
 	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"log"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"time"
 )
 
 const (
@@ -96,7 +95,6 @@ func main() {
 
 	defer conn.Close()
 
-	fmt.Println("connected to ssh server")
 	// open an SFTP session over an existing ssh connection.
 	client, err := sftp.NewClient(conn)
 	if err != nil {
@@ -104,25 +102,29 @@ func main() {
 	}
 	defer client.Close()
 
-	fmt.Println("sftp client created")
-
-	// walk a directory
-	w := client.Walk("/home/user")
-	for w.Step() {
-		if w.Err() != nil {
-			continue
-		}
-		log.Println(w.Path())
-	}
-
-	// leave your mark
-	f, err := client.Create("hello.txt")
+	var user = "USER"
+	var sftpBasePath = fmt.Sprintf("home/%s", user)
+	err = client.MkdirAll(sftpBasePath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if _, err := f.Write([]byte("!Hello world!")); err != nil {
+
+	// leave your mark
+	f, err := client.Create(fmt.Sprintf("%s/hello.txt", sftpBasePath))
+	if err != nil {
 		log.Fatal(err)
 	}
+
+	if _, err := f.Write([]byte("Hello world!")); err != nil {
+		log.Fatal(err)
+	}
+
+	// check error
+	err = client.MkdirAll(sftpBasePath + "/dir")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	f.Close()
 
 	// check it's there
@@ -130,12 +132,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	if fi == nil {
 		log.Fatal("file not found")
 	}
-
-	log.Println("----------", fi)
+	client.Close()
 
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 

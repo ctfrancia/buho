@@ -14,23 +14,25 @@ const (
 )
 
 type SSHServer struct {
-	Addr    string
-	Port    int
-	KeyPath string
+	Addr              string
+	Port              int
+	PrivateKeyName    string
+	AcceptedPublicKey string
 }
 
-func NewSSHServer(addr string, port int, keyPath string) *SSHServer {
+func NewSSHServer(addr string, port int, pkn, apk string) *SSHServer {
 	return &SSHServer{
-		Addr:    addr,
-		Port:    port,
-		KeyPath: keyPath,
+		Addr:              addr,
+		Port:              port,
+		PrivateKeyName:    pkn,
+		AcceptedPublicKey: apk,
 	}
 }
 
 // TODO: Upload a file to the sftp server, the code workds but with a local ssh server
 func (s SSHServer) UploadFile() {
 	// buho ssh server
-	key, err := os.ReadFile("id_rsa")
+	key, err := os.ReadFile(s.PrivateKeyName)
 	if err != nil {
 		log.Fatal("Failed to load private key: ", err)
 	}

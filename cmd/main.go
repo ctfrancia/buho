@@ -1,14 +1,16 @@
 package main
 
 import (
-	"github.com/ctfrancia/buho/internal/model"
-	"github.com/ctfrancia/buho/internal/repository"
-	"github.com/ctfrancia/buho/internal/sftp"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/ctfrancia/buho/internal/auth"
+	"github.com/ctfrancia/buho/internal/model"
+	"github.com/ctfrancia/buho/internal/repository"
+	"github.com/ctfrancia/buho/internal/sftp"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -28,6 +30,9 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  time.Duration
 	}
+	auth struct {
+		secretKey string
+	}
 }
 
 type application struct {
@@ -35,6 +40,7 @@ type application struct {
 	logger     *slog.Logger
 	repository repository.Repository
 	sftp       *sftp.SSHServer
+	auth       *auth.Auth
 }
 
 func main() {
@@ -43,6 +49,7 @@ func main() {
 	var cfg config
 	cfg.env = "development"
 	cfg.db.dsn = os.Getenv("BUHO_DB_DSN")
+	cfg.auth.secretKey = os.Getenv("BUHO_AUTH_SECRET_KEY")
 
 	db, err := openDB(cfg)
 	if err != nil {
@@ -54,6 +61,7 @@ func main() {
 		logger:     logger,
 		repository: repository.New(db),
 		sftp:       sftp.NewSSHServer("localhost", 2022, "id_rsa", "internal/sftp/pub_key"),
+		auth:       auth.NewAuth(cfg.auth.secretKey),
 	}
 
 	srv := http.Server{

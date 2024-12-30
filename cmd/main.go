@@ -66,6 +66,9 @@ func main() {
 
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 
+	sftpServer := sftp.NewSSHServer("localhost", 2022, "id_rsa", "internal/sftp/pub_key")
+	sftpServer.UploadFile()
+
 	err = srv.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

@@ -26,3 +26,4 @@ go.work.sum
 
 id_rsa*
 internal/sftp/pub_key
+*.pem

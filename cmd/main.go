@@ -38,6 +38,7 @@ type application struct {
 }
 
 func main() {
+	// TODO: Have a config set up function
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	var cfg config
 	cfg.env = "development"
@@ -65,9 +66,6 @@ func main() {
 	}
 
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
-
-	sftpServer := sftp.NewSSHServer("localhost", 2022, "id_rsa", "internal/sftp/pub_key")
-	sftpServer.UploadFile()
 
 	err = srv.ListenAndServe()
 	if err != nil {

@@ -6,6 +6,11 @@ import (
 	"time"
 )
 
+const (
+	// TournamentAPIRequesterKey is the key used to store the user ID in the request context in the tournament API handlers
+	TournamentAPIRequesterKey = "tournamentAPIUser"
+)
+
 type Auth struct {
 	secretKey []byte
 }

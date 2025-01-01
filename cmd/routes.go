@@ -1,10 +1,15 @@
 package main
 
 import (
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"context"
+	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/ctfrancia/buho/internal/auth"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func (app *application) routes() *chi.Mux {
@@ -22,8 +27,8 @@ func (app *application) routes() *chi.Mux {
 			r.Get("/search", app.searchUsers)
 		})
 		r.Route("/tournaments", func(r chi.Router) {
-			r.Use(AuthorizationMiddleware)
-			r.Post("/", app.createTournament)
+			r.Use(app.authorizationMiddleware)
+			r.Post("/poster", app.uploadTournamentPoster)
 			r.Patch("/{id}", app.updateTournament)
 			r.Route("/{id}", func(r chi.Router) {
 			})
@@ -47,7 +52,7 @@ func (app *application) routes() *chi.Mux {
 }
 
 // AuthorizationMiddleware checks if the user is authorized by validating the token
-func AuthorizationMiddleware(next http.Handler) http.Handler {
+func (app *application) authorizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the 'Authorization' header (e.g., 'Bearer <token>')
 		authHeader := r.Header.Get("Authorization")
@@ -68,18 +73,37 @@ func AuthorizationMiddleware(next http.Handler) http.Handler {
 		token := parts[1]
 
 		// Validate the token (for example, check if it's a predefined valid token)
-		if !isValidToken(token) {
+		apiRequester, err := isValidToken(token, app.config.auth.secretKey)
+		if err != nil {
 			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 			return
 		}
 
-		// If the token is valid, pass the request to the next handler
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), auth.TournamentAPIRequesterKey, apiRequester)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 // Example function to validate the token (you can replace this with your actual logic)
-func isValidToken(token string) bool {
-	// FIXME: this is for testing only
-	return true
+func isValidToken(token, secret string) (string, error) {
+	// Parse the token with the HMAC signing method
+	t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("Error parsing token: %w", err)
+	}
+
+	// If valid, extract and print the claims
+	if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
+		if claims["sub"] == nil {
+			return "", fmt.Errorf("Invalid token or claims")
+		}
+		return claims["sub"].(string), nil
+	} else {
+		return "", fmt.Errorf("Invalid token or claims")
+	}
 }

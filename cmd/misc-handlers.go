@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 )
 
@@ -44,7 +43,7 @@ func (app *application) createAuthToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	tokenString, err := app.auth.CreateJWT("USER_ID")
+	tokenString, err := app.auth.CreateJWT(requestBody.Email)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"log"
+	"mime/multipart"
 	"net"
 	"os"
 )
@@ -29,16 +30,23 @@ func NewSSHServer(addr string, port int, pkn, apk string) *SSHServer {
 	}
 }
 
-// TODO: Upload a file to the sftp server, the code workds but with a local ssh server
-func (s SSHServer) UploadFile() {
+// UploadFile uploads a file to the sftp server
+func (s SSHServer) UploadFile(file multipart.File, fileName, user string) (string, error) {
+	// TODO: Clean up this function
+	uploadPath := fmt.Sprintf("%s/%s", homeDir, user)
+	remoteLocation := fmt.Sprintf("%s/%s", uploadPath, fileName)
+
 	// buho ssh server
 	key, err := os.ReadFile(s.PrivateKeyName)
 	if err != nil {
+		// TODO: error handle properly
 		log.Fatal("Failed to load private key: ", err)
+		return "", fmt.Errorf("Failed to load private key: %v", err)
 	}
 
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
+		// TODO: error handle properly
 		log.Fatal("Failed to parse private key: ", err)
 	}
 	auth := ssh.PublicKeys(signer)
@@ -46,6 +54,7 @@ func (s SSHServer) UploadFile() {
 	// buho-sftp public key
 	registeredPubKey, err := LoadRegisteredPublicKey("internal/sftp/pub_key")
 	if err != nil {
+		// TODO: error handle properly
 		log.Fatal("Failed to load registered public key: ", err)
 	}
 	// ssh client config
@@ -57,7 +66,7 @@ func (s SSHServer) UploadFile() {
 	// connect to ssh server
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", s.Addr, s.Port), config)
 	if err != nil {
-		log.Fatal("Failed to dial: ", err)
+		return "", fmt.Errorf("Failed to dial: %v", err)
 	}
 
 	defer conn.Close()
@@ -65,51 +74,40 @@ func (s SSHServer) UploadFile() {
 	// open an SFTP session over an existing ssh connection.
 	client, err := sftp.NewClient(conn)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("Error creating new sftp client: %v", err)
 	}
 	defer client.Close()
 
-	// user variable is a placeholder for the actual user requesting to upload a file
-	var user = "USER"
-	var sftpBasePath = fmt.Sprintf("%s/%s", homeDir, user)
-	err = client.MkdirAll(sftpBasePath)
+	// create the directory if it doesn't exist remotely
+	err = client.MkdirAll(uploadPath)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("Err making all directories: %v", err)
 	}
 
-	// fileName is a placeholder for the actual file name
-	fileName := "maple.JPG"
-	// leave your mark
-	f, err := client.Create(fmt.Sprintf("%s/%s", sftpBasePath, fileName))
+	// create a file on the remote server
+	f, err := client.Create(fmt.Sprintf("%s/%s", uploadPath, fileName))
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	// read a file locally, however, this will be done with an incoming request,
-	// most likely already []byte. This code wil be replaced with the actual file
-	photo, err := os.Open("internal/sftp/maple-halloween.JPG")
-	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("Error creating file on remote server: %v", err)
 	}
 
 	// write file to sftp server
-	if _, err := f.ReadFrom(photo); err != nil {
-		log.Fatal(err)
+	if _, err := f.ReadFrom(file); err != nil {
+		return "", fmt.Errorf("Error writing file to remote sftp server: %v", err)
 	}
 
 	f.Close()
 
 	// check it's there
-	fi, err := client.Lstat(sftpBasePath + "/" + fileName)
+	fi, err := client.Lstat(remoteLocation)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("Error performing Lstat on path: %v", err)
 	}
 	if fi == nil {
-		log.Fatal("file not found")
+		return "", fmt.Errorf("File not found on remote server")
 	}
-	fmt.Println("file uploaded successfully")
 	client.Close()
-	fmt.Println("client closed")
+
+	return remoteLocation, nil
 }
 
 func HostKeyCb(registeredKey ssh.PublicKey) ssh.HostKeyCallback {

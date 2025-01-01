@@ -16,6 +16,24 @@ func NewAuth(key string) *Auth {
 	}
 }
 
+// ValidateJWT validates a JWT token
+// TODO: REVIEW THIS
+func (a *Auth) ValidateJWT(tokenString string) (string, error) {
+	// Parse the token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Check the signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return a.secretKey, nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("could not parse the token: %w", err)
+	}
+	return token.Claims.(jwt.MapClaims)["sub"].(string), nil
+}
+
 // CreateJWT generates a new JWT token
 func (a *Auth) CreateJWT(userID string) (string, error) {
 	// Define the claims

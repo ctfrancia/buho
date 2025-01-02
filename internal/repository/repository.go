@@ -5,11 +5,15 @@ import (
 )
 
 type Repository struct {
-	Tournaments TournamentsRepository
+	Tournaments TournamentRepository
+	Users       UserRepository
+	Auth        AuthRepository
 }
 
 func New(db *gorm.DB) Repository {
 	return Repository{
-		Tournaments: TournamentsRepository{db},
+		Tournaments: TournamentRepository{db},
+		Users:       UserRepository{db},
+		Auth:        AuthRepository{db},
 	}
 }

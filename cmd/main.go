@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ctfrancia/buho/internal/auth"
-	"github.com/ctfrancia/buho/internal/model"
+	// "github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
 	"github.com/ctfrancia/buho/internal/sftp"
 
@@ -87,7 +87,7 @@ func openDB(cfg config) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db.AutoMigrate(&model.Tournament{})
+	db.AutoMigrate(&repository.AuthModel{})
 
 	return db, nil
 }

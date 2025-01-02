@@ -4,10 +4,10 @@ import (
 	"gorm.io/gorm"
 )
 
-type TournamentsRepository struct {
+type TournamentRepository struct {
 	DB *gorm.DB
 }
 
-func (r TournamentsRepository) Create(tournament interface{}) error {
+func (r TournamentRepository) Create(tournament interface{}) error {
 	return r.DB.Create(tournament).Error
 }

@@ -35,6 +35,7 @@ func (app *application) routes() *chi.Mux {
 		})
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/token", app.createAuthToken)
+			r.Post("/new", app.newApiUser)
 		})
 	})
 

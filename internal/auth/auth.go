@@ -1,14 +1,19 @@
 package auth
 
 import (
+	"crypto/rand"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"math/big"
+	"strings"
 	"time"
 )
 
 const (
 	// TournamentAPIRequesterKey is the key used to store the user ID in the request context in the tournament API handlers
 	TournamentAPIRequesterKey = "tournamentAPIUser"
+	// PasswordGeneratorDefaultLength is the length of the generated password for API users
+	PasswordGeneratorDefaultLength = 16 // TODO: This should be a configuration option
 )
 
 type Auth struct {
@@ -58,4 +63,32 @@ func (a *Auth) CreateJWT(userID string) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+// CreateSecretKey creates a new secret key, or password, used for user's credentials
+func CreateSecretKey(length int) (string, error) {
+	// Define the character sets
+	upper := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	lower := "abcdefghijklmnopqrstuvwxyz"
+	digits := "0123456789"
+	special := "!@#$%^&*()-_=+[]{}|;:,.<>?/~`"
+
+	// Combine all character sets into one
+	allCharacters := upper + lower + digits + special
+
+	var password strings.Builder
+
+	// Generate each character for the password
+	for i := 0; i < length; i++ {
+		// Get a random index into the combined character set
+		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(allCharacters))))
+		if err != nil {
+			return "", fmt.Errorf("Error with rand.Int: %v", err)
+		}
+
+		// Append the random character to the password
+		password.WriteByte(allCharacters[index.Int64()])
+	}
+
+	return password.String(), nil
 }

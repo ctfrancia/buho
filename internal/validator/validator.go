@@ -34,6 +34,7 @@ func (v *Validator) Check(ok bool, key, message string) {
 	}
 }
 
+// In returns true if a specific value is in a list of permitted values.
 func (v *Validator) In(key string, permittedValues ...string) bool {
 	return PermittedValue(key, permittedValues...)
 }

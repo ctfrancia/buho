@@ -54,3 +54,8 @@ func (app *application) invalidCredentialsResponse(w http.ResponseWriter, r *htt
 	message := "invalid credentials"
 	app.errorResponse(w, r, http.StatusUnauthorized, message)
 }
+
+func (app *application) conflictResponse(w http.ResponseWriter, r *http.Request) {
+	message := "a record already exists with this email address"
+	app.errorResponse(w, r, http.StatusConflict, message)
+}

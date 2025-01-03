@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ctfrancia/buho/internal/auth"
 	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
+	"github.com/ctfrancia/buho/internal/validator"
 	"gorm.io/gorm"
 )
 
@@ -43,46 +45,52 @@ func (app *application) createAuthToken(w http.ResponseWriter, r *http.Request) 
 func (app *application) newApiUser(w http.ResponseWriter, r *http.Request) {
 	// mashal the request body into a struct
 	var requestBody model.NewAPIUserRequest
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&requestBody); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
+
+	// Validate the request body that the required fields are present
+	v := validator.New()
+	v.Check(requestBody.Email != "", "email", "must be provided")
+	v.Check(requestBody.FirstName != "", "first_name", "must be provided")
+	v.Check(requestBody.LastName != "", "last_name", "must be provided")
+	v.Check(requestBody.Website != "", "website", "must be provided")
+	v.Check(validator.Matches(requestBody.Email, validator.EmailRX), "email", "must be a valid email address")
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
 	user := &repository.AuthModel{
 		Email: requestBody.Email,
 	}
-	// TODO: Create validator for this to make sure all necessary fields are present
 
 	// check if user is in DB and password if the user is in the DB then return a 409
-	err = app.repository.Auth.SelectByEmail(user)
+	err := app.repository.Auth.SelectByEmail(user)
 	if err != gorm.ErrRecordNotFound {
-		fmt.Println("111111111111111111111111", err)
-		// app.conflictResponse(w, r)
+		app.conflictResponse(w, r)
 		return
 	}
-	// START HERE
-	fmt.Println("22222222222", user)
-	// if the user is not in the DB then create the user and return a 201
-	/*
 
-			// check if user is in DB and password is correct (this is a mock)
-			if requestBody.Email != "foo" || requestBody.Password != "bar" {
-				app.invalidCredentialsResponse(w, r)
-		 		return
-			}
+	pw, err := auth.CreateSecretKey(auth.PasswordGeneratorDefaultLength)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	// Assign the password to the user
+	user.Password = pw
 
-			tokenString, err := app.auth.CreateJWT(requestBody.Email)
-			if err != nil {
-				app.serverErrorResponse(w, r, err)
-			}
+	err = app.repository.Auth.Create(*user)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
-			env := envelope{
-				"token": tokenString,
-			}
-
-			err = app.writeJSON(w, http.StatusOK, env, nil)
-			if err != nil {
-				app.serverErrorResponse(w, r, err)
-			}
-	*/
+	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }

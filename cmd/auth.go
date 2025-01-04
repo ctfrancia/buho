@@ -1,15 +1,14 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-
 	"github.com/ctfrancia/buho/internal/auth"
 	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
 	"github.com/ctfrancia/buho/internal/validator"
+
+	"encoding/json"
 	"gorm.io/gorm"
+	"net/http"
 )
 
 func (app *application) createAuthToken(w http.ResponseWriter, r *http.Request) {
@@ -21,8 +20,31 @@ func (app *application) createAuthToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// check if user is in DB and password is correct (this is a mock)
-	if requestBody.Email != "foo" || requestBody.Password != "bar" {
+	v := validator.New()
+	v.Check(requestBody.Email != "", "email", "must be provided")
+	v.Check(requestBody.Password != "", "password", "must be provided")
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	var user repository.AuthModel
+	user.Email = requestBody.Email
+	err = app.repository.Auth.SelectByEmail(&user)
+	if err == gorm.ErrRecordNotFound {
+		// TODO: Add a log message here
+		app.invalidCredentialsResponse(w, r)
+		return
+	}
+
+	// Compare the password from the request to the password in the DB
+	match, err := auth.CompareHashAndPassword(user.Password, requestBody.Password)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if !match {
 		app.invalidCredentialsResponse(w, r)
 		return
 	}
@@ -75,20 +97,30 @@ func (app *application) newApiUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pw, err := auth.CreateSecretKey(auth.PasswordGeneratorDefaultLength)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	// Assign the password to the user
-	user.Password = pw
-
-	err = app.repository.Auth.Create(*user)
+	generatedPW, err := auth.CreateSecretKey(auth.PasswordGeneratorDefaultLength)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
+	// Hash the password
+	encodedHash, err := auth.Hash(generatedPW)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	// Assign the argon2 hash to the user password
+	user.Password = encodedHash
+
+	// Create the user in DB
+	err = app.repository.Auth.Create(user)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	/// Return the user with the generated password
+	user.Password = generatedPW
 	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

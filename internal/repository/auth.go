@@ -10,7 +10,7 @@ type AuthModel struct {
 	FirstName string `json:"first_name" gorm:"not null"`
 	LastName  string `json:"last_name" gorm:"not null"`
 	Email     string `json:"email" gorm:"unique;not null"`
-	Password  string `json:"password" gorm:"not null"`
+	Password  string `json:"password,omitempty" gorm:"not null"`
 	Website   string `json:"website" gorm:"not null"`
 }
 
@@ -20,8 +20,8 @@ type AuthRepository struct {
 }
 
 // Create is a method that creates a new auth
-func (a AuthRepository) Create(auth AuthModel) error {
-	return a.db.Create(&auth).Error
+func (a AuthRepository) Create(user *AuthModel) error {
+	return a.db.Create(&user).Error
 }
 
 func (a AuthRepository) SelectByEmail(user *AuthModel) error {

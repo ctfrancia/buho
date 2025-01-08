@@ -28,14 +28,17 @@ func (app *application) routes() *chi.Mux {
 		})
 		r.Route("/tournaments", func(r chi.Router) {
 			r.Use(app.authorizationMiddleware)
+			r.Post("/", app.createTournament)
 			r.Post("/poster", app.uploadTournamentPoster)
-			r.Patch("/{id}", app.updateTournament)
-			r.Route("/{id}", func(r chi.Router) {
-			})
+			// r.Patch("/{id}", app.updateTournament)
+			// r.Route("/{id}", func(r chi.Router) {
+			// })
 		})
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/token", app.createAuthToken)
-			r.Post("/new", app.newApiUser)
+			r.Post("/login", app.login)
+			r.Route("/new", func(r chi.Router) {
+				r.Post("/consumer", app.newApiConsumer)
+			})
 		})
 	})
 
@@ -55,16 +58,13 @@ func (app *application) routes() *chi.Mux {
 // AuthorizationMiddleware checks if the user is authorized by validating the token
 func (app *application) authorizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get the 'Authorization' header (e.g., 'Bearer <token>')
 		authHeader := r.Header.Get("Authorization")
 
-		// Check if the 'Authorization' header is provided
 		if authHeader == "" {
-			http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+			app.invalidCredentialsResponse(w, r)
 			return
 		}
 
-		// Check if the token starts with 'Bearer' (common format)
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			http.Error(w, "Authorization token format is invalid", http.StatusUnauthorized)
@@ -86,8 +86,8 @@ func (app *application) authorizationMiddleware(next http.Handler) http.Handler 
 }
 
 // Example function to validate the token (you can replace this with your actual logic)
-func isValidToken(token, secret string) (string, error) {
-	// Parse the token with the HMAC signing method
+func isValidToken(token, secret string) (map[string]interface{}, error) {
+	// Parse the token with the HMAC signing method TODO: Change to RS256
 	t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
@@ -95,16 +95,16 @@ func isValidToken(token, secret string) (string, error) {
 		return []byte(secret), nil
 	})
 	if err != nil {
-		return "", fmt.Errorf("Error parsing token: %w", err)
+		return nil, fmt.Errorf("Error parsing token: %w", err)
 	}
 
 	// If valid, extract and print the claims
 	if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
 		if claims["sub"] == nil {
-			return "", fmt.Errorf("Invalid token or claims")
+			return nil, fmt.Errorf("Invalid token or claims")
 		}
-		return claims["sub"].(string), nil
+		return claims["sub"].(map[string]interface{}), nil
 	} else {
-		return "", fmt.Errorf("Invalid token or claims")
+		return nil, fmt.Errorf("Invalid token or claims")
 	}
 }

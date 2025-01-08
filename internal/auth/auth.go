@@ -6,11 +6,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/argon2"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/ctfrancia/buho/internal/repository"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/argon2"
 )
 
 const (
@@ -62,15 +64,20 @@ func (a *Auth) ValidateJWT(tokenString string) (string, error) {
 }
 
 // CreateJWT generates a new JWT token
-func (a *Auth) CreateJWT(userID string) (string, error) {
+func (a *Auth) CreateJWT(user repository.AuthModel) (string, error) {
 	// Define the claims
+	fmt.Printf("USER------------- %#v", user)
 	claims := jwt.MapClaims{
-		"sub": userID,                                // User ID (subject)
+		"sub": map[string]interface{}{
+			"id":      user.ID,      //int
+			"email":   user.Email,   //string
+			"website": user.Website, //string
+		},
 		"iat": time.Now().Unix(),                     // Issued at time
 		"exp": time.Now().Add(time.Hour * 24).Unix(), // Expiration time (1 day from now)
 	}
 
-	// Create a new token using the HS256 signing method
+	// Create a new token using the HS256 signing methuod
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign the token with the secret key

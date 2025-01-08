@@ -7,11 +7,11 @@ import (
 // AuthModel is a struct that defines the model in the Database
 type AuthModel struct {
 	gorm.Model
-	FirstName string `json:"first_name" gorm:"not null"`
-	LastName  string `json:"last_name" gorm:"not null"`
-	Email     string `json:"email" gorm:"unique;not null"`
+	FirstName string `json:"first_name,omitempty" gorm:"not null"`
+	LastName  string `json:"last_name,omitempty" gorm:"not null"`
+	Email     string `json:"email,omitempty" gorm:"unique;not null"`
 	Password  string `json:"password,omitempty" gorm:"not null"`
-	Website   string `json:"website" gorm:"not null"`
+	Website   string `json:"website,omitempty" gorm:"not null"`
 }
 
 // AuthRepository is a struct that defines the repository for the auth

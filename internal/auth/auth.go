@@ -64,9 +64,8 @@ func (a *Auth) ValidateJWT(tokenString string) (string, error) {
 }
 
 // CreateJWT generates a new JWT token
-func (a *Auth) CreateJWT(user repository.AuthModel) (string, error) {
+func (a *Auth) CreateJWT(user repository.Auth) (string, error) {
 	// Define the claims
-	fmt.Printf("USER------------- %#v", user)
 	claims := jwt.MapClaims{
 		"sub": map[string]interface{}{
 			"id":      user.ID,      //int

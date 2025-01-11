@@ -5,7 +5,7 @@ import (
 )
 
 // AuthModel is a struct that defines the model in the Database
-type AuthModel struct {
+type Auth struct {
 	gorm.Model
 	FirstName string `json:"first_name,omitempty" gorm:"not null"`
 	LastName  string `json:"last_name,omitempty" gorm:"not null"`
@@ -20,10 +20,10 @@ type AuthRepository struct {
 }
 
 // Create is a method that creates a new auth
-func (a AuthRepository) Create(user *AuthModel) error {
+func (a AuthRepository) Create(user *Auth) error {
 	return a.db.Create(&user).Error
 }
 
-func (a AuthRepository) SelectByEmail(user *AuthModel) error {
+func (a AuthRepository) SelectByEmail(user *Auth) error {
 	return a.db.Where("email = ?", user.Email).First(user).Error
 }

@@ -3,39 +3,77 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ctfrancia/buho/internal/auth"
 	"net/http"
+	"time"
+
+	"github.com/ctfrancia/buho/internal/auth"
+	"github.com/ctfrancia/buho/internal/model"
+	"github.com/ctfrancia/buho/internal/repository"
+	"github.com/google/uuid"
 )
 
-type creatingTournamentEntity struct {
+type creatingTournamentConsumer struct {
 	Website string
 	Email   string
 	ID      int
 }
 
-type creatingTournamentRequest struct {
-	// Name string `json:"name"`
-}
-
 func (app *application) createTournament(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
-	cte := creatingTournamentEntity{
-		Website: user["website"].(string),
-		Email:   user["email"].(string),
-		ID:      int(user["id"].(float64)),
+	userCtx := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
+	ctc := creatingTournamentConsumer{
+		// Website: userCtx["website"].(string),
+		// Email:   userCtx["email"].(string),
+		ID: int(userCtx["id"].(float64)),
 	}
 
-	var ctr creatingTournamentRequest
-	decoder := json.NewDecoder(r.Body)
-	if decoder.Decode(&ctr) != nil {
-		app.badRequestResponse(w, r, fmt.Errorf("failed to decode request body"))
+	var ctr model.CreateTournamentRequest
+	err := json.NewDecoder(r.Body).Decode(&ctr)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	// TODO: START HERE FOR CREATING A TOURNAMENT
-	// returned back the tournament id, that id will be used to upload the poster
+	fmt.Printf("Creating tournament %#v\n", ctr)
 
-	fmt.Println("----------", cte)
+	tournamentUUID := uuid.New().String()
+	// TODO: Add validation for the tournament dates
+	// Build the tournament object for the DB
+	sd, err := time.Parse(time.RFC3339, ctr.StartDate)
+	if err != nil {
+		fmt.Println("error parsing time", err)
+		app.badRequestResponse(w, r, fmt.Errorf("failed to parse start date"))
+		return
+	}
+
+	ed, err := time.Parse(time.RFC3339, ctr.EndDate)
+	if err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("failed to parse end date"))
+		return
+	}
+
+	t := repository.Tournament{
+		Name:           ctr.Name,
+		TournamentUUID: tournamentUUID,
+		StartDate:      sd, // TODO: Can't be in the past
+		EndDate:        ed, // TODO: End date must be before/in the past
+		CreatorID:      uint(ctc.ID),
+		PosterURL:      "",
+	}
+
+	err = app.repository.Tournaments.Create(&t)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	env := envelope{
+		"tournament": t,
+	}
+
+	err = app.writeJSON(w, http.StatusCreated, env, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Request) {

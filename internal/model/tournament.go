@@ -1,12 +1,9 @@
 package model
 
-import (
-	"gorm.io/gorm"
-)
+import ()
 
-type Tournament struct {
-	gorm.Model
-	Name        string
-	Description string
-	Date        string
+type CreateTournamentRequest struct {
+	Name      string `json:"name,omitempty"`
+	StartDate string `json:"start_date,omitempty"`
+	EndDate   string `json:"end_date,omitempty"`
 }

@@ -29,7 +29,7 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user repository.AuthModel
+	var user repository.Auth
 	user.Email = requestBody.Email
 	err = app.repository.Auth.SelectByEmail(&user)
 	if err == gorm.ErrRecordNotFound {
@@ -86,7 +86,7 @@ func (app *application) newApiConsumer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authModelUser := &repository.AuthModel{
+	authModelUser := &repository.Auth{
 		Email:     requestBody.Email,
 		FirstName: requestBody.FirstName,
 		LastName:  requestBody.LastName,

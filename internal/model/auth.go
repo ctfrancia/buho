@@ -9,7 +9,7 @@ type CreateAuthTokenResponse struct {
 	Token string `json:"token"`
 }
 
-type NewAPIUserRequest struct {
+type NewAPIConsumerRequest struct {
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
 	Username  string `json:"username,omitempty"`

@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func (app *application) createAuthToken(w http.ResponseWriter, r *http.Request) {
+func (app *application) login(w http.ResponseWriter, r *http.Request) {
 	// mashal the request body into a struct
 	var requestBody model.CreateAuthTokenRequest
 	err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -29,7 +29,7 @@ func (app *application) createAuthToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var user repository.AuthModel
+	var user repository.Auth
 	user.Email = requestBody.Email
 	err = app.repository.Auth.SelectByEmail(&user)
 	if err == gorm.ErrRecordNotFound {
@@ -49,7 +49,7 @@ func (app *application) createAuthToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	tokenString, err := app.auth.CreateJWT(requestBody.Email)
+	tokenString, err := app.auth.CreateJWT(user)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -64,9 +64,9 @@ func (app *application) createAuthToken(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (app *application) newApiUser(w http.ResponseWriter, r *http.Request) {
+func (app *application) newApiConsumer(w http.ResponseWriter, r *http.Request) {
 	// mashal the request body into a struct
-	var requestBody model.NewAPIUserRequest
+	var requestBody model.NewAPIConsumerRequest
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&requestBody); err != nil {
@@ -86,12 +86,15 @@ func (app *application) newApiUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := &repository.AuthModel{
-		Email: requestBody.Email,
+	authModelUser := &repository.Auth{
+		Email:     requestBody.Email,
+		FirstName: requestBody.FirstName,
+		LastName:  requestBody.LastName,
+		Website:   requestBody.Website,
 	}
 
 	// check if user is in DB and password if the user is in the DB then return a 409
-	err := app.repository.Auth.SelectByEmail(user)
+	err := app.repository.Auth.SelectByEmail(authModelUser)
 	if err != gorm.ErrRecordNotFound {
 		app.conflictResponse(w, r)
 		return
@@ -110,18 +113,18 @@ func (app *application) newApiUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Assign the argon2 hash to the user password
-	user.Password = encodedHash
+	authModelUser.Password = encodedHash
 
 	// Create the user in DB
-	err = app.repository.Auth.Create(user)
+	err = app.repository.Auth.Create(authModelUser)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
 	/// Return the user with the generated password
-	user.Password = generatedPW
-	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
+	authModelUser.Password = generatedPW
+	err = app.writeJSON(w, http.StatusCreated, envelope{"consumer": authModelUser}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

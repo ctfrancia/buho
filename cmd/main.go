@@ -54,6 +54,7 @@ func main() {
 	db, err := openDB(cfg)
 	if err != nil {
 		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	app := &application{
@@ -87,7 +88,7 @@ func openDB(cfg config) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db.AutoMigrate(&repository.AuthModel{})
+	db.Debug().AutoMigrate(&repository.Auth{}, &repository.Organizer{}, &repository.Location{}, &repository.Tournament{})
 
 	return db, nil
 }

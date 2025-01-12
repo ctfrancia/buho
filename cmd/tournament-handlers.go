@@ -9,6 +9,7 @@ import (
 	"github.com/ctfrancia/buho/internal/auth"
 	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -16,6 +17,45 @@ type creatingTournamentConsumer struct {
 	Website string
 	Email   string
 	ID      int
+}
+
+func (app *application) updateTournament(w http.ResponseWriter, r *http.Request) {
+	// userCtx := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
+	uuid := chi.URLParam(r, "uuid")
+	if uuid == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing uuid"))
+		return
+	}
+	var t repository.Tournament
+
+	err := json.NewDecoder(r.Body).Decode(&t)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	err = app.repository.Tournaments.UpdateByUUID(uuid, t)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Get the updated tournament to send back to the client TODO: I don't think this is necessary
+	t, err = app.repository.Tournaments.GetByUUID(uuid)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	env := envelope{
+		"tournament": t,
+	}
+
+	err = app.writeJSON(w, http.StatusOK, env, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+
 }
 
 func (app *application) createTournament(w http.ResponseWriter, r *http.Request) {
@@ -32,8 +72,6 @@ func (app *application) createTournament(w http.ResponseWriter, r *http.Request)
 		app.badRequestResponse(w, r, err)
 		return
 	}
-
-	fmt.Printf("Creating tournament %#v\n", ctr)
 
 	tournamentUUID := uuid.New().String()
 	// TODO: Add validation for the tournament dates
@@ -115,7 +153,4 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 		app.serverErrorResponse(w, r, err)
 	}
 
-}
-
-func (app *application) updateTournament(w http.ResponseWriter, r *http.Request) {
 }

@@ -28,11 +28,11 @@ func (app *application) routes() *chi.Mux {
 		})
 		r.Route("/tournaments", func(r chi.Router) {
 			r.Use(app.authorizationMiddleware)
-			r.Post("/", app.createTournament)
-			r.Post("/poster", app.uploadTournamentPoster)
-			// r.Patch("/{id}", app.updateTournament)
-			// r.Route("/{id}", func(r chi.Router) {
-			// })
+			r.Post("/new", app.createTournament)
+			r.Route("/{uuid}", func(r chi.Router) {
+				r.Post("/poster", app.uploadTournamentPoster)
+				r.Patch("/update", app.updateTournament)
+			})
 		})
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/login", app.login)

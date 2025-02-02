@@ -22,23 +22,10 @@ const (
 	sshAddr = "localhost:2022"
 )
 
-type config struct {
-	env string
-	db  struct {
-		dsn          string
-		maxOpenConns int
-		maxIdleConns int
-		maxIdleTime  time.Duration
-	}
-	auth struct {
-		secretKey string
-	}
-}
-
 type application struct {
-	config     config
+	config     *config
 	logger     *slog.Logger
-	repository repository.Repository
+	repository *repository.Repository
 	sftp       *sftp.SSHServer
 	auth       *auth.Auth
 }
@@ -46,12 +33,10 @@ type application struct {
 func main() {
 	// TODO: Have a config set up function
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	var cfg config
-	cfg.env = "development"
-	cfg.db.dsn = os.Getenv("BUHO_DB_DSN")
-	cfg.auth.secretKey = os.Getenv("BUHO_AUTH_SECRET_KEY")
+	// var cfg config
+	cfg := NewConfig()
 
-	db, err := openDB(cfg)
+	db, err := openDB(cfg.db.dsn)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -82,8 +67,8 @@ func main() {
 	}
 }
 
-func openDB(cfg config) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(cfg.db.dsn), &gorm.Config{TranslateError: true})
+func openDB(dsn string) (*gorm.DB, error) {
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
 		return nil, err
 	}

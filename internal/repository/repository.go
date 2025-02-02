@@ -10,8 +10,8 @@ type Repository struct {
 	Auth        AuthRepository
 }
 
-func New(db *gorm.DB) Repository {
-	return Repository{
+func New(db *gorm.DB) *Repository {
+	return &Repository{
 		Tournaments: TournamentRepository{db},
 		Users:       UserRepository{db},
 		Auth:        AuthRepository{db},

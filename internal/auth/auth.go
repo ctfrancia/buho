@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 	"time"
 
@@ -68,19 +69,32 @@ func (a *Auth) CreateJWT(user repository.Auth) (string, error) {
 	// Define the claims
 	claims := jwt.MapClaims{
 		"sub": map[string]interface{}{
-			"id":      user.ID,      //int
-			"email":   user.Email,   //string
-			"website": user.Website, //string
+			"id":      user.ID,
+			"email":   user.Email,
+			"website": user.Website,
 		},
-		"iat": time.Now().Unix(),                     // Issued at time
+		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour * 24).Unix(), // Expiration time (1 day from now)
 	}
 
-	// Create a new token using the HS256 signing methuod
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	// Create a new token using the HS256 signing methuod SigningMethodHMAC
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+    
+    // Load the RSA private key
+    // TODO: This should be a configuration option
+    privateKeyFile, err := os.ReadFile("internal/keys/jwt/test_key.pem")
+    if err != nil {
+        return "", fmt.Errorf("could not read the private key file: %w", err)
+    }
+
+    privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyFile)
+    if err != nil {
+        return "", fmt.Errorf("could not parse the private key: %w", err)
+    }
 
 	// Sign the token with the secret key
-	tokenString, err := token.SignedString(a.secretKey)
+	// tokenString, err := token.SignedString(a.secretKey)
+	tokenString, err := token.SignedString(privateKey)
 	if err != nil {
 		return "", fmt.Errorf("could not sign the token: %w", err)
 	}

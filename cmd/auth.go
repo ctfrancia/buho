@@ -23,7 +23,6 @@ func (app *application) login(w http.ResponseWriter, r *http.Request) {
 	v := validator.New()
 	v.Check(requestBody.Email != "", "email", "must be provided")
 	v.Check(requestBody.Password != "", "password", "must be provided")
-
 	if !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return

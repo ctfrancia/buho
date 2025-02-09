@@ -24,7 +24,10 @@ go.work.sum
 # env file
 .env
 
+# keys
 id_rsa*
 internal/sftp/pub_key
 *.pem
 .DS_Store
+internal/keys/jwt/*
+internal/keys/sftp/*

@@ -88,7 +88,8 @@ func openDB(cfg config) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	db.Debug().AutoMigrate(&repository.Auth{}, &repository.Organizer{}, &repository.Location{}, &repository.Tournament{})
+    // db.Debug() for debugging
+	db.AutoMigrate(&repository.Auth{}, &repository.Organizer{}, &repository.Location{}, &repository.Tournament{})
 
 	return db, nil
 }

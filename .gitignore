@@ -26,8 +26,5 @@ go.work.sum
 
 # keys
 id_rsa*
-internal/sftp/pub_key
-*.pem
+*.pem*
 .DS_Store
-internal/keys/jwt/*
-internal/keys/sftp/*

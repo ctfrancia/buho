@@ -22,21 +22,8 @@ const (
 	sshAddr = "localhost:2022"
 )
 
-type config struct {
-	env string
-	db  struct {
-		dsn          string
-		maxOpenConns int
-		maxIdleConns int
-		maxIdleTime  time.Duration
-	}
-	auth struct {
-		secretKey string
-	}
-}
-
 type application struct {
-	config     config
+	config     *Config
 	logger     *slog.Logger
 	repository repository.Repository
 	sftp       *sftp.SSHServer
@@ -44,12 +31,10 @@ type application struct {
 }
 
 func main() {
-	// TODO: Have a config set up function
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	var cfg config
+	cfg := newConfig()
 	cfg.env = "development"
 	cfg.db.dsn = os.Getenv("BUHO_DB_DSN")
-	cfg.auth.secretKey = os.Getenv("BUHO_AUTH_SECRET_KEY")
 
 	db, err := openDB(cfg)
 	if err != nil {
@@ -61,12 +46,12 @@ func main() {
 		config:     cfg,
 		logger:     logger,
 		repository: repository.New(db),
-		sftp:       sftp.NewSSHServer("localhost", 2022, "id_rsa", "internal/sftp/pub_key"),
-		auth:       auth.NewAuth(cfg.auth.secretKey),
+		sftp:       sftp.NewSSHServer(cfg.sftp.addr, cfg.sftp.port, cfg.sftp.publicKeyName, cfg.sftp.publicKeyPath),
+		auth:       auth.NewAuth(cfg.auth.privateKeyPath, cfg.auth.publicKeyPath),
 	}
 
 	srv := http.Server{
-		Addr:         ":4000",
+		Addr:         cfg.addr,
 		Handler:      app.routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
@@ -82,13 +67,13 @@ func main() {
 	}
 }
 
-func openDB(cfg config) (*gorm.DB, error) {
+func openDB(cfg *Config) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(cfg.db.dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
 		return nil, err
 	}
 
-    // db.Debug() for debugging
+	// db.Debug() for debugging
 	db.AutoMigrate(&repository.Auth{}, &repository.Organizer{}, &repository.Location{}, &repository.Tournament{})
 
 	return db, nil

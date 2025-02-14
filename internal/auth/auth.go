@@ -16,9 +16,12 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+type key int
+
 const (
 	// TournamentAPIRequesterKey is the key used to store the user ID in the request context in the tournament API handlers
-	TournamentAPIRequesterKey = "tournamentAPIUser"
+	// https://stackoverflow.com/questions/40891345/fix-should-not-use-basic-type-string-as-key-in-context-withvalue-golint
+	TournamentAPIRequesterKey key = iota
 	// PasswordGeneratorDefaultLength is the length of the generated password for API users
 	PasswordGeneratorDefaultLength = 16 // TODO: This should be a configuration option
 )
@@ -37,12 +40,14 @@ type a2params struct {
 }
 
 type Auth struct {
-	secretKey []byte
+	privateKeyPath string
+	publicKeyPath  string
 }
 
-func NewAuth(key string) *Auth {
+func NewAuth(privKeyPath, PubKeyPath string) *Auth {
 	return &Auth{
-		secretKey: []byte(key),
+		privateKeyPath: privKeyPath,
+		publicKeyPath:  PubKeyPath,
 	}
 }
 
@@ -52,11 +57,11 @@ func (a *Auth) ValidateJWT(tokenString string) (string, error) {
 	// Parse the token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Check the signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return a.secretKey, nil
+		return jwt.ParseRSAPublicKeyFromPEM([]byte(a.publicKeyPath))
 	})
 	if err != nil {
 		return "", fmt.Errorf("could not parse the token: %w", err)
@@ -79,18 +84,18 @@ func (a *Auth) CreateJWT(user repository.Auth) (string, error) {
 
 	// Create a new token using the HS256 signing methuod SigningMethodHMAC
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-    
-    // Load the RSA private key
-    // TODO: This should be a configuration option
-    privateKeyFile, err := os.ReadFile("internal/keys/jwt/test_key.pem")
-    if err != nil {
-        return "", fmt.Errorf("could not read the private key file: %w", err)
-    }
 
-    privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyFile)
-    if err != nil {
-        return "", fmt.Errorf("could not parse the private key: %w", err)
-    }
+	// Load the RSA private key
+	// TODO: This should be a configuration option
+	privateKeyFile, err := os.ReadFile(a.privateKeyPath)
+	if err != nil {
+		return "", fmt.Errorf("could not read the private key file: %w", err)
+	}
+
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyFile)
+	if err != nil {
+		return "", fmt.Errorf("could not parse the private key: %w", err)
+	}
 
 	// Sign the token with the secret key
 	// tokenString, err := token.SignedString(a.secretKey)
@@ -120,7 +125,7 @@ func CreateSecretKey(length int) (string, error) {
 		// Get a random index into the combined character set
 		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(allCharacters))))
 		if err != nil {
-			return "", fmt.Errorf("Error with rand.Int: %v", err)
+			return "", fmt.Errorf("error with rand.Int: %v", err)
 		}
 
 		// Append the random character to the password
@@ -143,7 +148,7 @@ func Hash(password string) (string, error) {
 	}
 	hash, err := generateFromPassword(password, &p)
 	if err != nil {
-		return "", fmt.Errorf("Error generating hash: %v", err)
+		return "", fmt.Errorf("error generating hash: %v", err)
 	}
 
 	return hash, nil

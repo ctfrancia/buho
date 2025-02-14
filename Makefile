@@ -1,9 +1,51 @@
-.PHONY: run-dev
+# Configuration
+KEY_SIZE ?= 2048
+BASE_DIR ?= internal/keys
+KEY_TYPES ?= jwt sftp app
+
+# Define standard key names
+PRIVATE_KEY = private.pem
+PUBLIC_KEY = public.pem
+
+.PHONY: all clean generate-all verify-dirs $(KEY_TYPES) generate-% help confirm run-dev gen-test-keys setup-db
 
 help: ## Show this help
 	@echo "Usage: make [target]"
 	@echo "Targets:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+all-dev-keys: generate-all ## Create all dev keys
+
+generate-all: $(KEY_TYPES) ## Create all key pairs for all types
+	@echo "All key pairs generated successfully"
+
+verify-dirs: ## Verify directories exist
+	@mkdir -p $(addprefix $(BASE_DIR)/,$(KEY_TYPES))
+
+$(KEY_TYPES): verify-dirs ## Generate keys for each type
+	@echo "Generating RSA key pair for $@..."
+	@openssl genpkey -algorithm RSA \
+		-pkeyopt rsa_keygen_bits:$(KEY_SIZE) \
+		-out $(BASE_DIR)/$@/$(PRIVATE_KEY)
+	@openssl rsa -pubout \
+		-in $(BASE_DIR)/$@/$(PRIVATE_KEY) \
+		-out $(BASE_DIR)/$@/$(PUBLIC_KEY)
+	@chmod 600 $(BASE_DIR)/$@/$(PRIVATE_KEY)
+	@chmod 644 $(BASE_DIR)/$@/$(PUBLIC_KEY)
+	@echo "Generated $(BASE_DIR)/$@/$(PRIVATE_KEY)"
+	@echo "Generated $(BASE_DIR)/$@/$(PUBLIC_KEY)"
+
+clean: ## Remove all generated keys
+	@rm -rf $(BASE_DIR)
+	@echo "Removed all generated keys"
+
+generate-%: ## Generate a single key type
+	@if echo "$(KEY_TYPES)" | grep -w "$*" > /dev/null; then \
+		$(MAKE) $*; \
+	else \
+		echo "Error: Invalid key type '$*'. Valid types are: $(KEY_TYPES)"; \
+		exit 1; \
+	fi
 
 confirm: ## Confirm the action
 	@read -p "Are you sure? [y/N] " response; \
@@ -14,13 +56,6 @@ confirm: ## Confirm the action
 
 run-dev: ## Run the application in development mode
 	@go run ./cmd/...
-
-gen-key: ## show instructions to generate a key
-	@echo "To generate a key, run the following command in the root of this project !!!!TESTING ONLY!!!"
-	@echo "do not have a password on the key"
-	@echo "ssh-keygen -t rsa -b 4096 -f ./id_rsa"
-	@echo "copy and paste the public key(id_rsa.pub) to the authorized_keys file in the sftp server"
-	@echo "do the same thing in the sftp server and copy the public key to internal/sftp/pub_key file"
 
 setup-db: confirm ## Setup databse locally for testing
 	@echo "====REVERTING TO CLEAN STATE===="

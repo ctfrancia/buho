@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
-    "os"
 
 	"github.com/ctfrancia/buho/internal/auth"
 	"github.com/go-chi/chi/v5"
@@ -75,7 +75,7 @@ func (app *application) authorizationMiddleware(next http.Handler) http.Handler 
 		token := parts[1]
 
 		// Validate the token (for example, check if it's a predefined valid token)
-		apiRequester, err := isValidToken(token)
+		apiRequester, err := isValidToken(app.config.auth.publicKeyPath, token)
 		if err != nil {
 			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 			return
@@ -87,35 +87,35 @@ func (app *application) authorizationMiddleware(next http.Handler) http.Handler 
 }
 
 // Example function to validate the token (you can replace this with your actual logic)
-func isValidToken(token string) (map[string]interface{}, error) {
-    // Load public key
-    publicKeyFile, err := os.ReadFile("internal/keys/jwt/test_key.pem.pub")
-    if err != nil {
-        // Handle error
-    }
+func isValidToken(publicKeyPath, token string) (map[string]interface{}, error) {
+	// Load public key
+	publicKeyFile, err := os.ReadFile(publicKeyPath)
+	if err != nil {
+		// Handle error
+	}
 
-    publicKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKeyFile)
-    if err != nil {
-        // Handle error
-    }
-    // Verify token
-    t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-        // Validate the signing method is RS256
-        if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-            return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-        }
-        return publicKey, nil
-    })
-    if err != nil {
-        return nil, fmt.Errorf("Error parsing token: %w", err)
-    }
+	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKeyFile)
+	if err != nil {
+		// Handle error
+	}
+	// Verify token
+	t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		// Validate the signing method is RS256
+		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return publicKey, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error parsing token: %w", err)
+	}
 
-    if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
-        if claims["sub"] == nil {
-            return nil, fmt.Errorf("Invalid token or claims")
-        }
-        return claims["sub"].(map[string]interface{}), nil
-    } else {
-        return nil, fmt.Errorf("Invalid token or claims")
-    }
+	if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
+		if claims["sub"] == nil {
+			return nil, fmt.Errorf("invalid token or claims")
+		}
+		return claims["sub"].(map[string]interface{}), nil
+	} else {
+		return nil, fmt.Errorf("invalid token or claims")
+	}
 }

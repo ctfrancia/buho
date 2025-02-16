@@ -17,3 +17,8 @@ type NewAPIConsumerRequest struct {
 	Password  string `json:"password,omitempty"`
 	Website   string `json:"website,omitempty"`
 }
+
+type RefreshTokenRequest struct {
+	Email        string `json:"email"`
+	RefreshToken string `json:"refresh_token"`
+}

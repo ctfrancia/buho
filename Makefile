@@ -35,7 +35,7 @@ $(KEY_TYPES): verify-dirs ## Generate keys for each type
 	@echo "Generated $(BASE_DIR)/$@/$(PRIVATE_KEY)"
 	@echo "Generated $(BASE_DIR)/$@/$(PUBLIC_KEY)"
 
-clean: ## Remove all generated keys
+clean-keys: ## Remove all generated keys
 	@rm -rf $(BASE_DIR)
 	@echo "Removed all generated keys"
 

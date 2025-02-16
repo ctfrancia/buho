@@ -52,7 +52,6 @@ func NewAuth(privKeyPath, PubKeyPath string) *Auth {
 }
 
 // ValidateJWT validates a JWT token
-// TODO: REVIEW THIS
 func (a *Auth) ValidateJWT(tokenString string) (string, error) {
 	// Parse the token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -107,6 +106,28 @@ func (a *Auth) CreateJWT(user repository.Auth) (string, error) {
 	return tokenString, nil
 }
 
+// CreateRefreshToken generates a new refresh token
+func (a *Auth) CreateRefreshToken(user *repository.Auth) (string, error) {
+	// Generate a new secret key
+	secretKey, err := CreateSecretKey(PasswordGeneratorDefaultLength)
+	if err != nil {
+		return "", fmt.Errorf("could not create a new secret key: %w", err)
+	}
+
+	// NOTE: the "rt_" prefix is used to indicate that this is a refresh token
+	sk := fmt.Sprintf("rt_%s", secretKey)
+
+	hashedSecretKey, err := Hash(sk)
+	if err != nil {
+		return "", fmt.Errorf("could not hash the secret key: %w", err)
+	}
+
+	user.RefreshToken = hashedSecretKey
+	user.RefreshTokenExpiry = time.Now().Add(time.Hour * 24 * 7) // 1 week from now
+
+	return sk, nil
+}
+
 // CreateSecretKey creates a new secret key, or password, used for user's credentials
 func CreateSecretKey(length int) (string, error) {
 	// Define the character sets
@@ -138,7 +159,7 @@ func CreateSecretKey(length int) (string, error) {
 // Hash hashes the password
 func Hash(password string) (string, error) {
 	// Define the parameters for the Argon2 algorithm
-	// TODO: These should be configuration options
+	// FIXME: These should be configuration options
 	p := a2params{
 		memory:      64 * 1024,
 		iterations:  3,

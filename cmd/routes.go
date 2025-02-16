@@ -37,6 +37,7 @@ func (app *application) routes() *chi.Mux {
 		})
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/login", app.login)
+			r.Post("/refresh", app.refresh)
 			r.Route("/new", func(r chi.Router) {
 				r.Post("/consumer", app.newApiConsumer)
 			})
@@ -86,7 +87,7 @@ func (app *application) authorizationMiddleware(next http.Handler) http.Handler 
 	})
 }
 
-// Example function to validate the token (you can replace this with your actual logic)
+// FIXME: This function should be returning a type not an interface
 func isValidToken(publicKeyPath, token string) (map[string]interface{}, error) {
 	// Load public key
 	publicKeyFile, err := os.ReadFile(publicKeyPath)

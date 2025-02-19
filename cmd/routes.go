@@ -31,6 +31,8 @@ func (app *application) routes() *chi.Mux {
 			r.Use(app.authorizationMiddleware)
 			r.Post("/new", app.createTournament)
 			r.Route("/{uuid}", func(r chi.Router) {
+				r.Post("/qr", app.uploadQRCode)
+				// r.Get("/", app.showTournament)
 				r.Post("/poster", app.uploadTournamentPoster)
 				r.Patch("/update", app.updateTournament)
 			})

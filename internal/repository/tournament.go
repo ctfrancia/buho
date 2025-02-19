@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"fmt"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Tournament struct {
@@ -13,9 +13,9 @@ type Tournament struct {
 	EndDate        time.Time `json:"end_date" gorm:"not null"`
 	TournamentUUID string    `json:"tourament_uuid" gorm:"not null"`
 	CreatorID      uint      `json:"-" gorm:"not null"`
+	PosterURL      string    `json:"poster_url"`
+	Description    string    `json:"description"`
 	// LocationID  LocationModel
-	PosterURL   string `json:"poster_url"`
-	Description string `json:"description"`
 	//	Organizer   OrganizerModel
 	// Website string
 	// Online  bool
@@ -36,6 +36,5 @@ func (r TournamentRepository) GetByUUID(uuid string) (Tournament, error) {
 }
 
 func (r TournamentRepository) UpdateByUUID(uuid string, t Tournament) error {
-	fmt.Println("Updating tournament", t)
 	return r.DB.Model(&Tournament{}).Omit("creator_id", "start_date").Where("tournament_uuid = ?", uuid).Updates(t).Error
 }

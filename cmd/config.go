@@ -17,10 +17,11 @@ type Config struct {
 }
 
 type sftpStruct struct {
-	addr          string
-	port          int
-	publicKeyName string
-	publicKeyPath string
+	addr           string
+	port           int
+	publicKeyName  string
+	publicKeyPath  string
+	privateKeyPath string
 }
 
 type db struct {
@@ -51,10 +52,11 @@ func newConfig() *Config {
 			publicKeyPath:  "internal/keys/jwt/public.pem",
 		},
 		sftp: sftpStruct{
-			addr:          "localhost",
-			port:          2022,
-			publicKeyName: "public.pem",
-			publicKeyPath: "internal/keys/sftp/public.pem",
+			addr:           "localhost",
+			port:           2022,
+			publicKeyName:  "public.pem",
+			publicKeyPath:  "internal/keys/sftp/public.pem",
+			privateKeyPath: "internal/keys/sftp/private.pem",
 		},
 	}
 

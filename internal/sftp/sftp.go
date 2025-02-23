@@ -32,22 +32,20 @@ func NewSSHServer(addr string, port int, pubKeyPath, privKeyPath string) *SSHSer
 }
 
 // UploadFile uploads a file to the sftp server
-func (s SSHServer) UploadFile(file multipart.File, fileName, user string) (string, error) {
+func (s SSHServer) UploadFile(file multipart.File, fileName, website string) (string, error) {
 	// TODO: Clean up this function
-	uploadPath := fmt.Sprintf("%s/%s", homeDir, user)
+	uploadPath := fmt.Sprintf("%s/%s", homeDir, website)
 	remoteLocation := fmt.Sprintf("%s/%s", uploadPath, fileName)
 
 	// buho ssh server
 	key, err := os.ReadFile(s.PrivateKeyPath)
 	if err != nil {
-		// TODO: error handle properly
 		log.Fatal("Failed to load private key: ", err)
 		return "", fmt.Errorf("Failed to load private key: %v", err)
 	}
 
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
-		// TODO: error handle properly
 		log.Fatal("Failed to parse private key: ", err)
 	}
 	auth := ssh.PublicKeys(signer)
@@ -55,9 +53,10 @@ func (s SSHServer) UploadFile(file multipart.File, fileName, user string) (strin
 	// buho-sftp public key
 	registeredPubKey, err := LoadRegisteredPublicKey(s.PublicKeyPath)
 	if err != nil {
-		// TODO: error handle properly
-		log.Fatal("Failed to load registered public key: ", err)
+		fmt.Println("error loading registered public key ----------- ", s.PublicKeyPath)
+		log.Fatal(err)
 	}
+
 	// ssh client config
 	config := &ssh.ClientConfig{
 		Auth:            []ssh.AuthMethod{auth},

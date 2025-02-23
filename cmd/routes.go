@@ -61,7 +61,6 @@ func (app *application) routes() *chi.Mux {
 func (app *application) authorizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
-
 		if authHeader == "" {
 			app.invalidCredentialsResponse(w, r)
 			return
@@ -75,7 +74,6 @@ func (app *application) authorizationMiddleware(next http.Handler) http.Handler 
 
 		token := parts[1]
 
-		// Validate the token (for example, check if it's a predefined valid token)
 		apiRequester, err := isValidToken(app.config.auth.publicKeyPath, token)
 		if err != nil {
 			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)

@@ -55,7 +55,6 @@ func (app *application) updateTournament(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-
 }
 
 func (app *application) createTournament(w http.ResponseWriter, r *http.Request) {
@@ -115,12 +114,10 @@ func (app *application) createTournament(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Request) {
-	// when uploading a file, check the tournament ID and make sure that the id is the same as
-	// the requester of the tournament website. ex: tournament ID 1 fetch tournmentByID(1) and check if the
-	// creator is the same as the requester!
-	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(string)
+	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
 	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
+		fmt.Println("error parsing form", err)
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -135,7 +132,7 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 	metaData := r.MultipartForm.File["tournament"][0]
 	defer file.Close()
 
-	uploadPath, err := app.sftp.UploadFile(file, metaData.Filename, tCreater)
+	uploadPath, err := app.sftp.UploadFile(file, metaData.Filename, tCreater["website"].(string))
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -152,5 +149,4 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-
 }

@@ -46,7 +46,7 @@ func main() {
 		config:     cfg,
 		logger:     logger,
 		repository: repository.New(db),
-		sftp:       sftp.NewSSHServer(cfg.sftp.addr, cfg.sftp.port, cfg.sftp.publicKeyName, cfg.sftp.publicKeyPath),
+		sftp:       sftp.NewSSHServer(cfg.sftp.addr, cfg.sftp.port, cfg.sftp.publicKeyPath, cfg.sftp.privateKeyPath),
 		auth:       auth.NewAuth(cfg.auth.privateKeyPath, cfg.auth.publicKeyPath),
 	}
 

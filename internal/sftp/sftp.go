@@ -20,6 +20,7 @@ type SSHServer struct {
 	Port           int
 	PrivateKeyPath string
 	PublicKeyPath  string
+	SFTPKeyPath    string
 }
 
 func NewSSHServer(addr string, port int, pubKeyPath, privKeyPath string) *SSHServer {
@@ -28,6 +29,7 @@ func NewSSHServer(addr string, port int, pubKeyPath, privKeyPath string) *SSHSer
 		Port:           port,
 		PublicKeyPath:  pubKeyPath,
 		PrivateKeyPath: privKeyPath,
+		SFTPKeyPath:    "internal/keys/sftp/buho-sftp.pem",
 	}
 }
 

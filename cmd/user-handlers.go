@@ -32,11 +32,11 @@ func (app *application) showUserByEmail(w http.ResponseWriter, r *http.Request) 
 	app.logger.Info("GET /users/email", "email", email)
 }
 
-func (app *application) createUser(w http.ResponseWriter, r *http.Request) {
+func (app *application) createPlayer(w http.ResponseWriter, r *http.Request) {
 	app.logger.Info("POST /users")
 }
 
-func (app *application) listUsers(w http.ResponseWriter, r *http.Request) {
+func (app *application) listPlayers(w http.ResponseWriter, r *http.Request) {
 	app.logger.Info("GET /users")
 }
 

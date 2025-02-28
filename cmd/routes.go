@@ -21,9 +21,9 @@ func (app *application) routes() *chi.Mux {
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/healthcheck", app.healthcheck)
-		r.Route("/users", func(r chi.Router) {
-			r.Get("/", app.listUsers)
-			r.Post("/", app.createUser)
+		r.Route("/players", func(r chi.Router) {
+			r.Get("/", app.listPlayers)
+			r.Post("/", app.createPlayer)
 			r.Get("/email/{email}", app.showUserByEmail)
 			r.Get("/search", app.searchUsers)
 		})

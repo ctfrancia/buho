@@ -1,9 +1,12 @@
 package auth
 
 import (
+	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/subtle"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/argon2"
@@ -82,23 +86,16 @@ func (a *Auth) CreateJWT(user repository.Auth) (string, error) {
 	}
 
 	// Create a new token using the HS256 signing methuod SigningMethodHMAC
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, claims)
 
-	// Load the RSA private key
-	// TODO: This should be a configuration option
-	privateKeyFile, err := os.ReadFile(a.privateKeyPath)
-	if err != nil {
-		return "", fmt.Errorf("could not read the private key file: %w", err)
-	}
-
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyFile)
+	// ParseED25519PrivateKey reads an ED25519 private key from a PEM file
+	key, err := ParseED25519PrivateKey(a.privateKeyPath)
 	if err != nil {
 		return "", fmt.Errorf("could not parse the private key: %w", err)
 	}
 
 	// Sign the token with the secret key
-	// tokenString, err := token.SignedString(a.secretKey)
-	tokenString, err := token.SignedString(privateKey)
+	tokenString, err := token.SignedString(key)
 	if err != nil {
 		return "", fmt.Errorf("could not sign the token: %w", err)
 	}
@@ -257,4 +254,102 @@ func decodeHash(encodedHash string) (p *a2params, salt, hash []byte, err error) 
 	p.keyLength = uint32(len(hash))
 
 	return p, salt, hash, nil
+}
+
+// ParseED25519PublicKey reads an ED25519 public key from a PEM file
+func ParseED25519PublicKey(filepath string) (ed25519.PublicKey, error) {
+	// Read the key file
+	keyBytes, err := os.ReadFile(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read public key file: %v", err)
+	}
+
+	// Decode the PEM-encoded key
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	// Parse the public key
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %v", err)
+	}
+
+	// Type assert to ed25519.PublicKey
+	ed25519Key, ok := pub.(ed25519.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("not an ED25519 public key")
+	}
+
+	return ed25519Key, nil
+}
+
+// ParseED25519PrivateKey reads an ED25519 private key from a PEM file
+func ParseED25519PrivateKey(filepath string) (ed25519.PrivateKey, error) {
+	// Read the key file
+	keyBytes, err := os.ReadFile(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read private key file: %v", err)
+	}
+
+	// Decode the PEM-encoded key
+	block, _ := pem.Decode(keyBytes)
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	// Parse the private key
+	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %v", err)
+	}
+
+	// Type assert to ed25519.PrivateKey
+	ed25519Key, ok := privateKey.(ed25519.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("not an ED25519 private key")
+	}
+
+	return ed25519Key, nil
+}
+
+// VerifyJWTWithED25519 demonstrates verifying a JWT with an ED25519 public key
+func VerifyJWTWithED25519(tokenString string, publicKeyPath string) (model.Subject, error) {
+	// Parse the public key
+	publicKey, err := ParseED25519PublicKey(publicKeyPath)
+	if err != nil {
+		return model.Subject{}, fmt.Errorf("failed to parse public key: %v", err)
+	}
+
+	// Parse and verify the token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Verify the signing method is EdDSA
+		if _, ok := token.Method.(*jwt.SigningMethodEd25519); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return publicKey, nil
+	})
+	if err != nil {
+		return model.Subject{}, fmt.Errorf("failed to parse token: %v", err)
+	}
+
+	// Check if the token is valid
+	if !token.Valid {
+		return model.Subject{}, fmt.Errorf("invalid token")
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if claims["sub"] == nil {
+			return model.Subject{}, fmt.Errorf("invalid token or claims")
+		}
+		sub := claims["sub"].(map[string]interface{})
+		return model.Subject{
+			ID:      int(sub["id"].(float64)),
+			Email:   sub["email"].(string),
+			Website: sub["website"].(string),
+		}, nil
+	} else {
+		return model.Subject{}, fmt.Errorf("invalid token or claims")
+	}
 }

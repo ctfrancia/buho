@@ -22,3 +22,11 @@ type RefreshTokenRequest struct {
 	Email        string `json:"email"`
 	RefreshToken string `json:"refresh_token"`
 }
+
+// Subject is the struct from the JWT token that can be used in the rest of the request
+// lifecycle to identify the user
+type Subject struct {
+	ID      int
+	Email   string
+	Website string
+}

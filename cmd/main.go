@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ctfrancia/buho/internal/auth"
-	// "github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
 	"github.com/ctfrancia/buho/internal/sftp"
 

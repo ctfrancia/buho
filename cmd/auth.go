@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -191,7 +192,7 @@ func (app *application) newApiConsumer(w http.ResponseWriter, r *http.Request) {
 
 	// check if user is in DB and password if the user is in the DB then return a 409
 	err := app.repository.Auth.SelectByEmail(authModelUser)
-	if err != repository.ErrRecordNotFound {
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		app.conflictResponse(w, r)
 		return
 	}

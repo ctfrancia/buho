@@ -1,11 +1,14 @@
 package sftp
 
 import (
+	"bytes"
+	"crypto/ed25519"
 	"fmt"
 	"log"
 	"mime/multipart"
 	"net"
-	"os"
+
+	bAuth "github.com/ctfrancia/buho/internal/auth"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -35,31 +38,30 @@ func NewSSHServer(addr string, port int, pubKeyPath, privKeyPath string) *SSHSer
 
 // UploadFile uploads a file to the sftp server
 func (s SSHServer) UploadFile(file multipart.File, fileName, website string) (string, error) {
-	// TODO: Clean up this function
 	uploadPath := fmt.Sprintf("%s/%s", homeDir, website)
 	remoteLocation := fmt.Sprintf("%s/%s", uploadPath, fileName)
 
 	// buho ssh server
-	key, err := os.ReadFile(s.PrivateKeyPath)
+	buhoPrivKey, err := bAuth.ParseED25519PrivateKey(s.PrivateKeyPath)
 	if err != nil {
 		log.Fatal("Failed to load private key: ", err)
 		return "", fmt.Errorf("Failed to load private key: %v", err)
 	}
 
-	signer, err := ssh.ParsePrivateKey(key)
+	signer, err := ssh.NewSignerFromKey(buhoPrivKey)
 	if err != nil {
-		log.Fatal("Failed to parse private key: ", err)
+		return "", fmt.Errorf("failed to create signer: %v", err)
 	}
+
 	auth := ssh.PublicKeys(signer)
 
-	// buho-sftp public key
-	registeredPubKey, err := LoadRegisteredPublicKey(s.PublicKeyPath)
+	fmt.Println("public key path: ", s.SFTPKeyPath)
+	registeredPubKey, err := bAuth.ParseED25519PublicKey(s.SFTPKeyPath)
 	if err != nil {
 		fmt.Println("error loading registered public key ----------- ", s.PublicKeyPath)
 		log.Fatal(err)
 	}
-
-	// ssh client config
+	// Add the private key to the SSH client config's authentication methods
 	config := &ssh.ClientConfig{
 		Auth:            []ssh.AuthMethod{auth},
 		HostKeyCallback: HostKeyCb(registeredPubKey),
@@ -73,6 +75,7 @@ func (s SSHServer) UploadFile(file multipart.File, fileName, website string) (st
 
 	defer conn.Close()
 
+	// TODO: START HERE
 	// open an SFTP session over an existing ssh connection.
 	client, err := sftp.NewClient(conn)
 	if err != nil {
@@ -112,26 +115,37 @@ func (s SSHServer) UploadFile(file multipart.File, fileName, website string) (st
 	return remoteLocation, nil
 }
 
-func HostKeyCb(registeredKey ssh.PublicKey) ssh.HostKeyCallback {
+func HostKeyCb(registeredKey ed25519.PublicKey) ssh.HostKeyCallback {
 	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-		if string(key.Marshal()) == string(registeredKey.Marshal()) {
+		// Log incoming information for debugging
+		log.Printf("Host Key Callback Debug:")
+		log.Printf("Hostname: %s", hostname)
+		log.Printf("Remote Address: %s", remote)
+		log.Printf("Incoming Key Type: %T", key)
+
+		// Convert registered ED25519 public key to SSH public key
+		sshPubKey, err := ssh.NewPublicKey(registeredKey)
+		if err != nil {
+			return fmt.Errorf("failed to convert registered public key: %w", err)
+		}
+
+		// Log key details for comparison
+		log.Printf("Registered Key (SSH): %x", sshPubKey.Marshal())
+		log.Printf("Incoming Key: %x", key.Marshal())
+
+		// Perform detailed key comparison
+		registeredKeyBytes := sshPubKey.Marshal()
+		incomingKeyBytes := key.Marshal()
+
+		if bytes.Equal(registeredKeyBytes, incomingKeyBytes) {
 			return nil
 		}
 
-		return fmt.Errorf("host key mismatch")
-	}
-}
+		// If keys don't match, provide detailed mismatch information
+		log.Printf("Host Key Mismatch:")
+		log.Printf("Registered Key Length: %d", len(registeredKeyBytes))
+		log.Printf("Incoming Key Length: %d", len(incomingKeyBytes))
 
-func LoadRegisteredPublicKey(path string) (ssh.PublicKey, error) {
-	pubKeyBytes, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read public key file: %w", err)
+		return fmt.Errorf("host key mismatch: registered key does not match incoming key")
 	}
-
-	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(pubKeyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key: %w", err)
-	}
-
-	return pubKey, nil
 }

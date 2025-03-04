@@ -58,11 +58,9 @@ func (app *application) updateTournament(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) createTournament(w http.ResponseWriter, r *http.Request) {
-	userCtx := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
+	userCtx := r.Context().Value(auth.TournamentAPIRequesterKey).(model.Subject)
 	ctc := creatingTournamentConsumer{
-		// Website: userCtx["website"].(string),
-		// Email:   userCtx["email"].(string),
-		ID: int(userCtx["id"].(float64)),
+		ID: int(userCtx.ID),
 	}
 
 	var ctr model.CreateTournamentRequest
@@ -114,26 +112,29 @@ func (app *application) createTournament(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Request) {
-	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
+	formFileName := "poster"
+	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(model.Subject)
 	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
-		fmt.Println("error parsing form", err)
+		fmt.Println("error parsing form:", err)
 		app.badRequestResponse(w, r, err)
 		return
 	}
+
 	// Get the file from the form (ensure your HTML form uses "file" as the field name)
-	file, _, err := r.FormFile("tournament")
+	file, _, err := r.FormFile(formFileName)
 	if err != nil {
 		e := fmt.Errorf("failed to read file: %w", err)
 		app.badRequestResponse(w, r, e)
 		return
 	}
 
-	metaData := r.MultipartForm.File["tournament"][0]
+	metaData := r.MultipartForm.File[formFileName][0]
 	defer file.Close()
 
-	uploadPath, err := app.sftp.UploadFile(file, metaData.Filename, tCreater["website"].(string))
+	uploadPath, err := app.sftp.UploadFile(file, metaData.Filename, tCreater.Website)
 	if err != nil {
+		fmt.Println("error uploading file:", err)
 		app.serverErrorResponse(w, r, err)
 		return
 	}

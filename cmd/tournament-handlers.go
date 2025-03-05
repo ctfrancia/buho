@@ -111,6 +111,40 @@ func (app *application) createTournament(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func (app *application) uploadQRCode(w http.ResponseWriter, r *http.Request) {
+	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
+	fmt.Println("tCreater", tCreater["website"])
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	// Get the file from the form (ensure your HTML form uses "file" as the field name)
+	file, _, err := r.FormFile("qrcode")
+	if err != nil {
+		e := fmt.Errorf("failed to read file: %w", err)
+		app.badRequestResponse(w, r, e)
+		return
+	}
+
+	metaData := r.MultipartForm.File["qrcode"][0]
+	defer file.Close()
+
+	// TODO: updload to digital ocean below
+	env := envelope{
+		"status":    "uploaded",
+		"filename":  metaData.Filename,
+		"file_size": metaData.Size,
+		// "file_path": uploadPath,
+	}
+
+	err = app.writeJSON(w, http.StatusOK, env, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Request) {
 	uuid := chi.URLParam(r, "uuid")
 	formFileName := "poster"

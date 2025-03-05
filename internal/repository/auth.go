@@ -13,6 +13,8 @@ var ErrRecordNotFound = errors.New("record not found")
 // AuthModel is a struct that defines the model in the Database
 type Auth struct {
 	gorm.Model
+	// UUID is the unique identifier of the Auth and all actions against a Auth will be done using this UUID
+	UUID               string    `json:"uuid,omitempty" gorm:"not null"`
 	FirstName          string    `json:"first_name,omitempty" gorm:"not null"`
 	LastName           string    `json:"last_name,omitempty" gorm:"not null"`
 	Email              string    `json:"email,omitempty" gorm:"unique;not null"`

@@ -77,7 +77,7 @@ func (a *Auth) CreateJWT(user repository.Auth) (string, error) {
 	// Define the claims
 	claims := jwt.MapClaims{
 		"sub": map[string]interface{}{
-			"id":      user.ID,
+			"uuid":    user.UUID,
 			"email":   user.Email,
 			"website": user.Website,
 		},

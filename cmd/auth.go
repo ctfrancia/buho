@@ -11,6 +11,7 @@ import (
 	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
 	"github.com/ctfrancia/buho/internal/validator"
+	"github.com/google/uuid"
 
 	"gorm.io/gorm"
 )
@@ -183,7 +184,10 @@ func (app *application) newApiConsumer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	uuid := uuid.New().String()
+	// Create a new auth model
 	authModelUser := &repository.Auth{
+		UUID:      uuid,
 		Email:     requestBody.Email,
 		FirstName: requestBody.FirstName,
 		LastName:  requestBody.LastName,
@@ -209,6 +213,7 @@ func (app *application) newApiConsumer(w http.ResponseWriter, r *http.Request) {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+
 	// Assign the argon2 hash to the user password
 	authModelUser.Password = encodedHash
 

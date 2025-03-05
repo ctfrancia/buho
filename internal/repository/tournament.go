@@ -2,8 +2,9 @@ package repository
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Tournament struct {

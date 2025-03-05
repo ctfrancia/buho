@@ -16,7 +16,6 @@ func (app *application) routes() *chi.Mux {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Route("/v1", func(r chi.Router) {
-		r.Use(app.authorizationMiddleware)
 		r.Get("/healthcheck", app.healthcheck)
 		r.Route("/users", func(r chi.Router) {
 			r.Get("/", app.listUsers)

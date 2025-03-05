@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,7 +21,6 @@ type creatingTournamentConsumer struct {
 }
 
 func (app *application) updateTournament(w http.ResponseWriter, r *http.Request) {
-	// userCtx := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
 	uuid := chi.URLParam(r, "uuid")
 	if uuid == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("missing uuid"))
@@ -112,8 +112,10 @@ func (app *application) createTournament(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Request) {
+	uuid := chi.URLParam(r, "uuid")
 	formFileName := "poster"
 	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(model.Subject)
+	// TODO: 10 MB limit is too big, should be 5 MB
 	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
 		fmt.Println("error parsing form:", err)
@@ -121,7 +123,6 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Get the file from the form (ensure your HTML form uses "file" as the field name)
 	file, _, err := r.FormFile(formFileName)
 	if err != nil {
 		e := fmt.Errorf("failed to read file: %w", err)
@@ -131,19 +132,46 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 
 	metaData := r.MultipartForm.File[formFileName][0]
 	defer file.Close()
+	fmt.Println("file size:", metaData.Size)
+	fmt.Println("file name:", metaData.Filename)
 
-	uploadPath, err := app.sftp.UploadFile(file, metaData.Filename, tCreater.Website)
+	// Determine content type
+	contentType := metaData.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	cancelCtx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
+	// Generate a unique object name to prevent overwrites
+	// Format: {creator_website}/poster/{poster-uuid}/{unix_nano}_{filename}
+	uniqueObjectName := fmt.Sprintf("%s/poster/%s/%d_%s", tCreater.Website, uuid, time.Now().UnixNano(), metaData.Filename)
+	uploadedFilePath, err := app.digitalOcean.UploadFile(
+		cancelCtx,
+		uniqueObjectName,
+		file,
+		metaData.Size,
+		contentType,
+	)
 	if err != nil {
 		fmt.Println("error uploading file:", err)
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
+	t := repository.Tournament{
+		PosterURL: uploadedFilePath,
+	}
+	// TODO: Update the tournament with the poster URL
+	app.repository.Tournaments.UpdateByUUID(uuid, t)
+
 	env := envelope{
-		"status":    "uploaded",
-		"filename":  metaData.Filename,
-		"file_size": metaData.Size,
-		"file_path": uploadPath,
+		"upload_file": map[string]interface{}{
+			"status":    "uploaded",
+			"filename":  uniqueObjectName,
+			"file_size": metaData.Size,
+			"file_path": uploadedFilePath,
+		},
 	}
 
 	err = app.writeJSON(w, http.StatusOK, env, nil)

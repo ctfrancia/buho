@@ -2,15 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/ctfrancia/buho/internal/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func (app *application) routes() *chi.Mux {
@@ -18,7 +15,6 @@ func (app *application) routes() *chi.Mux {
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/healthcheck", app.healthcheck)
 		r.Route("/players", func(r chi.Router) {
@@ -63,62 +59,26 @@ func (app *application) routes() *chi.Mux {
 func (app *application) authorizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
-
 		if authHeader == "" {
-			app.invalidCredentialsResponse(w, r)
+			app.invalidCredentialsCustomResponse(w, r, "Authorization header is required")
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			http.Error(w, "Authorization token format is invalid", http.StatusUnauthorized)
+			app.invalidCredentialsCustomResponse(w, r, "Authorization token format is invalid")
 			return
 		}
 
 		token := parts[1]
 
-		// Validate the token (for example, check if it's a predefined valid token)
-		apiRequester, err := isValidToken(app.config.auth.publicKeyPath, token)
+		consumer, err := auth.VerifyJWTWithED25519(token, app.config.auth.publicKeyPath)
 		if err != nil {
-			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+			app.invalidCredentialsCustomResponse(w, r, "error verifying token")
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), auth.TournamentAPIRequesterKey, apiRequester)
+		ctx := context.WithValue(r.Context(), auth.TournamentAPIRequesterKey, consumer)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// FIXME: This function should be returning a type not an interface
-func isValidToken(publicKeyPath, token string) (map[string]interface{}, error) {
-	// Load public key
-	publicKeyFile, err := os.ReadFile(publicKeyPath)
-	if err != nil {
-		// Handle error
-	}
-
-	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKeyFile)
-	if err != nil {
-		// Handle error
-	}
-	// Verify token
-	t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-		// Validate the signing method is RS256
-		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return publicKey, nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error parsing token: %w", err)
-	}
-
-	if claims, ok := t.Claims.(jwt.MapClaims); ok && t.Valid {
-		if claims["sub"] == nil {
-			return nil, fmt.Errorf("invalid token or claims")
-		}
-		return claims["sub"].(map[string]interface{}), nil
-	} else {
-		return nil, fmt.Errorf("invalid token or claims")
-	}
 }

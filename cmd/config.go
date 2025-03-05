@@ -14,6 +14,7 @@ type Config struct {
 	db           db
 	auth         authStruct
 	sftp         sftpStruct
+	digitalOcean digitalOcean
 }
 
 type sftpStruct struct {
@@ -37,6 +38,13 @@ type authStruct struct {
 	secretKey      string
 }
 
+type digitalOcean struct {
+	endpoint        string
+	accessKeyID     string
+	secretAccessKey string
+	bucket          string
+}
+
 func newConfig() *Config {
 	c := &Config{
 		env:          "development",
@@ -54,10 +62,19 @@ func newConfig() *Config {
 		sftp: sftpStruct{
 			addr:           "localhost",
 			port:           2022,
-			publicKeyName:  "public.pem",
 			publicKeyPath:  "internal/keys/sftp/public.pem",
 			privateKeyPath: "internal/keys/sftp/private.pem",
 		},
+		digitalOcean: digitalOcean{
+			endpoint:        "fra1.digitaloceanspaces.com",
+			accessKeyID:     os.Getenv("DO_SPACES_ACCESS_KEY"),
+			secretAccessKey: os.Getenv("DO_SPACES_SECRET_KEY"),
+			bucket:          "mussol",
+		},
+	}
+
+	if c.digitalOcean.accessKeyID == "" || c.digitalOcean.secretAccessKey == "" {
+		os.Exit(1)
 	}
 
 	// TODO: verify the config isn't empty

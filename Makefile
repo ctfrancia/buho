@@ -23,13 +23,11 @@ verify-dirs: ## Verify directories exist
 	@mkdir -p $(addprefix $(BASE_DIR)/,$(KEY_TYPES))
 
 $(KEY_TYPES): verify-dirs ## Generate keys for each type
-	@echo "Generating RSA key pair for $@..."
-	@openssl genpkey -algorithm RSA \
-		-pkeyopt rsa_keygen_bits:$(KEY_SIZE) \
+	@echo "Generating ED25519 key pair for $@..."
+	@openssl genpkey -algorithm ED25519 \
 		-out $(BASE_DIR)/$@/$(PRIVATE_KEY)
-	@openssl rsa -pubout \
-		-in $(BASE_DIR)/$@/$(PRIVATE_KEY) \
-		-out $(BASE_DIR)/$@/$(PUBLIC_KEY)
+	@openssl pkey -in $(BASE_DIR)/$@/$(PRIVATE_KEY) \
+		-pubout -out $(BASE_DIR)/$@/$(PUBLIC_KEY)
 	@chmod 600 $(BASE_DIR)/$@/$(PRIVATE_KEY)
 	@chmod 644 $(BASE_DIR)/$@/$(PUBLIC_KEY)
 	@echo "Generated $(BASE_DIR)/$@/$(PRIVATE_KEY)"

@@ -13,3 +13,8 @@ To run this there are some things that you wwill need to do:
 2. You'll need [buho-sftp](https://github.com/ctfrancia/buho-sftp)
   - follow readme for key generation also
 3. TODO complete this
+
+
+## connecting to the sftp
+inside the sftp server need to run `make pem` to generate the pem file
+this needs to be copied here `internal/keys/sftp/buho-sftp.pem`

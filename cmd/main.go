@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/ctfrancia/buho/internal/auth"
-	// "github.com/ctfrancia/buho/internal/model"
+	"github.com/ctfrancia/buho/internal/digitalocean"
 	"github.com/ctfrancia/buho/internal/repository"
-	"github.com/ctfrancia/buho/internal/sftp"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -23,11 +22,11 @@ const (
 )
 
 type application struct {
-	config     *Config
-	logger     *slog.Logger
-	repository repository.Repository
-	sftp       *sftp.SSHServer
-	auth       *auth.Auth
+	config       *Config
+	logger       *slog.Logger
+	repository   repository.Repository
+	auth         *auth.Auth
+	digitalOcean *digitalocean.DigitalOceanSpacesClient
 }
 
 func main() {
@@ -46,8 +45,13 @@ func main() {
 		config:     cfg,
 		logger:     logger,
 		repository: repository.New(db),
-		sftp:       sftp.NewSSHServer(cfg.sftp.addr, cfg.sftp.port, cfg.sftp.publicKeyPath, cfg.sftp.privateKeyPath),
 		auth:       auth.NewAuth(cfg.auth.privateKeyPath, cfg.auth.publicKeyPath),
+		digitalOcean: digitalocean.NewDigitalOceanSpacesClient(
+			cfg.digitalOcean.endpoint,
+			cfg.digitalOcean.accessKeyID,
+			cfg.digitalOcean.secretAccessKey,
+			cfg.digitalOcean.bucket,
+		),
 	}
 
 	srv := http.Server{

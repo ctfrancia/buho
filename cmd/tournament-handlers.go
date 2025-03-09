@@ -134,7 +134,7 @@ func (app *application) uploadQRCode(w http.ResponseWriter, r *http.Request) {
 	// TODO: updload to digital ocean below
 	env := envelope{
 		"status":    "uploaded",
-		"filename":  metaData.Filename,
+		"file_name": metaData.Filename,
 		"file_size": metaData.Size,
 		// "file_path": uploadPath,
 	}
@@ -178,8 +178,9 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 	defer cancel()
 
 	// Generate a unique object name to prevent overwrites
-	// Format: {creator_website}/poster/{poster-uuid}/{unix_nano}_{filename}
-	uniqueObjectName := fmt.Sprintf("%s/poster/%s/%d_%s", tCreater.Website, uuid, time.Now().UnixNano(), metaData.Filename)
+	fileName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), metaData.Filename)
+	// Format: {creator_website}/poster/{poster-uuid}/{fileName}
+	uniqueObjectName := fmt.Sprintf("%s/poster/%s/%s", tCreater.Website, uuid, fileName)
 	uploadedFilePath, err := app.digitalOcean.UploadFile(
 		cancelCtx,
 		uniqueObjectName,
@@ -202,7 +203,7 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 	env := envelope{
 		"upload_file": map[string]interface{}{
 			"status":    "uploaded",
-			"filename":  uniqueObjectName,
+			"file_name": fileName,
 			"file_size": metaData.Size,
 			"file_path": uploadedFilePath,
 		},
@@ -211,5 +212,58 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 	err = app.writeJSON(w, http.StatusOK, env, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) deleteTournamentPoster(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	cancelCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	uuid := chi.URLParam(r, "uuid")
+	if uuid == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing uuid"))
+		return
+	}
+
+	fileName := chi.URLParam(r, "file_name")
+	if fileName == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing file_name"))
+		return
+	}
+
+	consumerWebsite := r.Context().Value(auth.TournamentAPIRequesterKey).(model.Subject).Website
+	photoPath := fmt.Sprintf("%s/poster/%s/%s", consumerWebsite, uuid, fileName)
+
+	er := app.digitalOcean.DeleteFile(cancelCtx, photoPath)
+	if er != nil {
+		app.serverErrorResponse(w, r, er)
+		return
+	}
+
+	err := app.repository.Tournaments.RemoveTournamentPosterURL(uuid)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	env := envelope{
+		"remove_file": map[string]interface{}{
+			"status":    "deleted",
+			"file_name": fileName,
+		},
+	}
+
+	err = app.writeJSON(w, http.StatusOK, env, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) downloadTournamentPoster(w http.ResponseWriter, r *http.Request) {
+	uuid := chi.URLParam(r, "uuid")
+	if uuid == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("missing uuid"))
+		return
 	}
 }

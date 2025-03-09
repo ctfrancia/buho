@@ -44,3 +44,7 @@ func (r TournamentRepository) GetByUUID(uuid string) (Tournament, error) {
 func (r TournamentRepository) UpdateByUUID(uuid string, t Tournament) error {
 	return r.DB.Model(&Tournament{}).Omit("creator_id", "start_date").Where("tournament_uuid = ?", uuid).Updates(t).Error
 }
+
+func (r TournamentRepository) RemoveTournamentPosterURL(uuid string) error {
+	return r.DB.Model(&Tournament{}).Where("tournament_uuid = ?", uuid).Update("poster_url", "").Error
+}

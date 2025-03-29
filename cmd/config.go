@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"time"
 )
@@ -45,7 +46,7 @@ type digitalOcean struct {
 	bucket          string
 }
 
-func newConfig() *Config {
+func newConfig() (*Config, error) {
 	c := &Config{
 		env:          "development",
 		addr:         ":4000",
@@ -74,9 +75,8 @@ func newConfig() *Config {
 	}
 
 	if c.digitalOcean.accessKeyID == "" || c.digitalOcean.secretAccessKey == "" {
-		os.Exit(1)
+		return nil, errors.New("missing digital ocean credentials")
 	}
 
-	// TODO: verify the config isn't empty
-	return c
+	return c, nil
 }

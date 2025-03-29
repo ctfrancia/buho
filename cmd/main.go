@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
@@ -30,8 +31,13 @@ type application struct {
 }
 
 func main() {
+	// log := logger.New(model.Development)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	cfg := newConfig()
+	cfg, err := newConfig()
+	if err != nil {
+		msg := fmt.Sprintf("error creating server config: %s", err)
+		log.Fatal(msg)
+	}
 	cfg.env = "development"
 	cfg.db.dsn = os.Getenv("BUHO_DB_DSN")
 

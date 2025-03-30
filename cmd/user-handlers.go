@@ -5,6 +5,7 @@ import (
 
 	"github.com/ctfrancia/buho/internal/validator"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 const (
@@ -28,8 +29,11 @@ func (app *application) showUserByEmail(w http.ResponseWriter, r *http.Request) 
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
+	fields := []zap.Field{
+		zap.String("email", email),
+	}
 
-	app.logger.Info("GET /users/email", "email", email)
+	app.logger.Info("GET /users/email", fields...)
 }
 
 func (app *application) createPlayer(w http.ResponseWriter, r *http.Request) {
@@ -54,5 +58,5 @@ func (app *application) searchUsers(w http.ResponseWriter, r *http.Request) {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	app.logger.Info("GET /users/search", "query", query, "value", value)
+	// app.logger.Info("GET /users/search", "query", query, "value", value)
 }

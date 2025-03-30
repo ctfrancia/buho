@@ -1,8 +1,15 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"time"
+)
+
+var (
+	ErrConfigNotSet              = errors.New("config not set")
+	ErrNoEnvSet                  = errors.New("no env set")
+	ErrNoDigitalOceanCredentials = errors.New("no digital ocean credentials set")
 )
 
 type Config struct {
@@ -45,9 +52,9 @@ type digitalOcean struct {
 	bucket          string
 }
 
-func newConfig() *Config {
+func newConfig(env string) (*Config, error) {
 	c := &Config{
-		env:          "development",
+		env:          env,
 		addr:         ":4000",
 		idleTimeout:  2 * time.Minute,
 		readTimeout:  5 * time.Second,
@@ -74,9 +81,9 @@ func newConfig() *Config {
 	}
 
 	if c.digitalOcean.accessKeyID == "" || c.digitalOcean.secretAccessKey == "" {
-		os.Exit(1)
+		return nil, ErrNoDigitalOceanCredentials
 	}
 
 	// TODO: verify the config isn't empty
-	return c
+	return c, nil
 }

@@ -112,7 +112,7 @@ func (app *application) createTournament(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) uploadQRCode(w http.ResponseWriter, r *http.Request) {
-	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]interface{})
+	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]any)
 	fmt.Println("tCreater", tCreater["website"])
 	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
@@ -201,7 +201,7 @@ func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Re
 	app.repository.Tournaments.UpdateByUUID(uuid, t)
 
 	env := envelope{
-		"upload_file": map[string]interface{}{
+		"upload_file": map[string]any{
 			"status":    "uploaded",
 			"file_name": fileName,
 			"file_size": metaData.Size,
@@ -248,7 +248,7 @@ func (app *application) deleteTournamentPoster(w http.ResponseWriter, r *http.Re
 	}
 
 	env := envelope{
-		"remove_file": map[string]interface{}{
+		"remove_file": map[string]any{
 			"status":    "deleted",
 			"file_name": fileName,
 		},

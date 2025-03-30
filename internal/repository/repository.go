@@ -10,10 +10,11 @@ type Repository struct {
 	Auth        AuthRepository
 }
 
-func New(db *gorm.DB) Repository {
+// New creates a new repository instance
+func New(db *gorm.DB) (Repository, error) {
 	return Repository{
 		Tournaments: TournamentRepository{db},
 		Users:       UserRepository{db},
 		Auth:        AuthRepository{db},
-	}
+	}, nil
 }

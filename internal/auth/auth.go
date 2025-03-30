@@ -48,17 +48,17 @@ type Auth struct {
 	publicKeyPath  string
 }
 
-func NewAuth(privKeyPath, PubKeyPath string) *Auth {
+func NewAuth(privKeyPath, PubKeyPath string) (*Auth, error) {
 	return &Auth{
 		privateKeyPath: privKeyPath,
 		publicKeyPath:  PubKeyPath,
-	}
+	}, nil
 }
 
 // ValidateJWT validates a JWT token
 func (a *Auth) ValidateJWT(tokenString string) (string, error) {
 	// Parse the token
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		// Check the signing method
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -76,7 +76,7 @@ func (a *Auth) ValidateJWT(tokenString string) (string, error) {
 func (a *Auth) CreateJWT(user repository.Auth) (string, error) {
 	// Define the claims
 	claims := jwt.MapClaims{
-		"sub": map[string]interface{}{
+		"sub": map[string]any{
 			"uuid":    user.UUID,
 			"email":   user.Email,
 			"website": user.Website,
@@ -139,7 +139,7 @@ func CreateSecretKey(length int) (string, error) {
 	var password strings.Builder
 
 	// Generate each character for the password
-	for i := 0; i < length; i++ {
+	for range length {
 		// Get a random index into the combined character set
 		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(allCharacters))))
 		if err != nil {

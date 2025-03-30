@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -18,22 +17,20 @@ type DigitalOceanSpacesClient struct {
 }
 
 // NewDigitalOceanSpacesClient creates a new client for DigitalOcean Spaces
-func NewDigitalOceanSpacesClient(endpoint, accessKeyID, secretAccessKey, bucket string) *DigitalOceanSpacesClient {
+func NewDigitalOceanSpacesClient(endpoint, accessKeyID, secretAccessKey, bucket string) (*DigitalOceanSpacesClient, error) {
 	// Create a new Minio client
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: true, // Use HTTPS
 	})
 	if err != nil {
-		// Log the error
-		log.Printf("error creating Spaces client: %v", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error creating Minio client: %v", err)
 	}
 
 	return &DigitalOceanSpacesClient{
 		Client: client,
 		Bucket: bucket,
-	}
+	}, nil
 }
 
 // UploadFile uploads a file to DigitalOcean Spaces

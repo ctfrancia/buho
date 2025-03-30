@@ -8,6 +8,7 @@ import (
 	"github.com/ctfrancia/buho/internal/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"go.uber.org/zap"
 )
 
 func (app *application) routes() *chi.Mux {
@@ -55,12 +56,19 @@ func (app *application) routes() *chi.Mux {
 
 	// Print out all routes
 	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-		app.logger.Info("route", "method", method, "route", route)
+		fields := []zap.Field{
+			zap.String("method", method),
+			zap.String("route", route),
+		}
+		app.logger.Info("route", fields...)
 		return nil
 	}
 
 	if err := chi.Walk(r, walkFunc); err != nil {
-		app.logger.Error("Logging err", "err", err)
+		fields := []zap.Field{
+			zap.String("err", err.Error()),
+		}
+		app.logger.Error("Walk err", fields...)
 	}
 
 	return r

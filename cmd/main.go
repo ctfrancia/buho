@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -10,6 +9,8 @@ import (
 	"github.com/ctfrancia/buho/internal/auth"
 	"github.com/ctfrancia/buho/internal/digitalocean"
 	"github.com/ctfrancia/buho/internal/repository"
+	"github.com/ctfrancia/buho/pkg/logger"
+	"go.uber.org/zap"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -23,36 +24,60 @@ const (
 
 type application struct {
 	config       *Config
-	logger       *slog.Logger
+	logger       *zap.Logger // *slog.Logger
 	repository   repository.Repository
 	auth         *auth.Auth
 	digitalOcean *digitalocean.DigitalOceanSpacesClient
 }
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	cfg := newConfig()
-	cfg.env = "development"
+	env := os.Getenv("ENV")
+	logger := logger.New(env)
+	cfg, err := newConfig(env)
+	if err != nil {
+		logger.Fatal("error creating config", zap.Error(err))
+		os.Exit(1)
+	}
 	cfg.db.dsn = os.Getenv("BUHO_DB_DSN")
 
 	db, err := openDB(cfg)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal("error opening db", zap.Error(err))
 		os.Exit(1)
 	}
 
-	app := &application{
-		config:     cfg,
-		logger:     logger,
-		repository: repository.New(db),
-		auth:       auth.NewAuth(cfg.auth.privateKeyPath, cfg.auth.publicKeyPath),
-		digitalOcean: digitalocean.NewDigitalOceanSpacesClient(
-			cfg.digitalOcean.endpoint,
-			cfg.digitalOcean.accessKeyID,
-			cfg.digitalOcean.secretAccessKey,
-			cfg.digitalOcean.bucket,
-		),
+	do, err := digitalocean.NewDigitalOceanSpacesClient(
+		cfg.digitalOcean.endpoint,
+		cfg.digitalOcean.accessKeyID,
+		cfg.digitalOcean.secretAccessKey,
+		cfg.digitalOcean.bucket,
+	)
+	if err != nil {
+		logger.Fatal("error creating digital ocean client", zap.Error(err))
+		os.Exit(1)
 	}
+
+	repo, err := repository.New(db)
+	if err != nil {
+		logger.Fatal("error creating repository", zap.Error(err))
+		os.Exit(1)
+	}
+	auth, err := auth.NewAuth(cfg.auth.privateKeyPath, cfg.auth.publicKeyPath)
+	if err != nil {
+		logger.Fatal("error creating auth", zap.Error(err))
+		os.Exit(1)
+	}
+	// Create the application
+	app := &application{
+		config:       cfg,
+		logger:       logger,
+		repository:   repo,
+		auth:         auth,
+		digitalOcean: do,
+	}
+
+	// Clear out any existing logs when the main function is ending
+	defer app.logger.Sync()
 
 	srv := http.Server{
 		Addr:         cfg.addr,
@@ -60,10 +85,14 @@ func main() {
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
+	// logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
+	fields := []zap.Field{
+		zap.String("addr", srv.Addr),
+		zap.String("env", cfg.env),
+	}
+	app.logger.Info("starting server", fields...)
 
 	err = srv.ListenAndServe()
 	if err != nil {

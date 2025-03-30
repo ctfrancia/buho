@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 func (app *application) failedValidationResponse(w http.ResponseWriter, r *http.Request, errs map[string]string) {
@@ -21,7 +23,11 @@ func (app *application) logError(r *http.Request, err error) {
 		uri    = r.URL.RequestURI()
 	)
 
-	app.logger.Error(err.Error(), "method", method, "uri", uri)
+	fields := []zap.Field{
+		zap.String("method", method),
+		zap.String("uri", uri),
+	}
+	app.logger.Error(err.Error(), fields...)
 }
 
 func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, status int, message any) {

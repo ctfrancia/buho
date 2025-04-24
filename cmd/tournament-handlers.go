@@ -10,6 +10,7 @@ import (
 	"github.com/ctfrancia/buho/internal/auth"
 	"github.com/ctfrancia/buho/internal/model"
 	"github.com/ctfrancia/buho/internal/repository"
+	"github.com/ctfrancia/buho/internal/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
@@ -86,13 +87,21 @@ func (app *application) createTournament(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	v := validator.New()
+	v.Check(sd.After(time.Now()), "start_date", "start_date cannot be in the past")
+	v.Check(ed.After(sd), "end_date", "end_date has to be after start_date")
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+	}
+
 	t := repository.Tournament{
 		Name:           ctr.Name,
 		TournamentUUID: tournamentUUID,
-		StartDate:      sd, // TODO: Can't be in the past
-		EndDate:        ed, // TODO: End date must be before/in the past
+		StartDate:      sd,
+		EndDate:        ed,
 		CreatorID:      uint(ctc.ID),
-		PosterURL:      "",
+		PosterURL:      ctr.PosterURL,
 	}
 
 	err = app.repository.Tournaments.Create(&t)

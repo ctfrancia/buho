@@ -81,7 +81,7 @@ func newConfig(env string) (*Config, error) {
 	}
 
 	if c.digitalOcean.accessKeyID == "" || c.digitalOcean.secretAccessKey == "" {
-		return nil, ErrNoDigitalOceanCredentials
+		//	return nil, ErrNoDigitalOceanCredentials
 	}
 
 	// TODO: verify the config isn't empty

@@ -31,7 +31,7 @@ type TournamentRepository struct {
 	DB *gorm.DB
 }
 
-func (r TournamentRepository) Create(tournament interface{}) error {
+func (r TournamentRepository) Create(tournament any) error {
 	return r.DB.Create(tournament).Error
 }
 

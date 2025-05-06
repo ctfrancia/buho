@@ -48,3 +48,15 @@ func (r TournamentRepository) UpdateByUUID(uuid string, t Tournament) error {
 func (r TournamentRepository) RemoveTournamentPosterURL(uuid string) error {
 	return r.DB.Model(&Tournament{}).Where("tournament_uuid = ?", uuid).Update("poster_url", "").Error
 }
+
+func (r TournamentRepository) GetAll() ([]Tournament, error) {
+	var tournaments []Tournament
+	err := r.DB.Find(&tournaments).Error
+	return tournaments, err
+}
+
+func (r TournamentRepository) GetByDateRange(startDate, endDate string) ([]Tournament, error) {
+	var tournaments []Tournament
+	err := r.DB.Where("start_date >= ? AND end_date <= ?", startDate, endDate).Find(&tournaments).Error
+	return tournaments, err
+}

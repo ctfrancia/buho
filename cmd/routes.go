@@ -25,23 +25,15 @@ func (app *application) routes() *chi.Mux {
 			r.Get("/search", app.searchUsers)
 		})
 		r.Route("/tournaments", func(r chi.Router) {
+			r.Get("/", app.listTournaments)
 			r.Use(app.authorizationMiddleware)
 			r.Post("/new", app.createTournament)
 			r.Route("/{uuid}", func(r chi.Router) {
+				r.Get("/", app.getTournament)
 				r.Route("/poster", func(r chi.Router) {
+					r.Delete("/", app.deleteTournamentPoster)
 					r.Post("/upload", app.uploadTournamentPoster)
-					r.Delete("/delete", app.deleteTournamentPoster)
-					r.Get("/download/{file_name}", app.downloadTournamentPoster)
 				})
-				/*
-					r.Route("/poster"), func(r chi.Router) {
-					r.Post("/upload", app.uploadTournamentPoster)
-					// r.Post("/poster", app.uploadTournamentPoster)
-					})
-					r.Post("/qr", app.uploadQRCode)
-					// r.Get("/", app.showTournament)
-					// r.Post("/poster", app.uploadTournamentPoster)
-				*/
 				r.Patch("/data", app.updateTournament)
 			})
 		})

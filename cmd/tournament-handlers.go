@@ -120,40 +120,6 @@ func (app *application) createTournament(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (app *application) uploadQRCode(w http.ResponseWriter, r *http.Request) {
-	tCreater := r.Context().Value(auth.TournamentAPIRequesterKey).(map[string]any)
-	fmt.Println("tCreater", tCreater["website"])
-	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
-	if err != nil {
-		app.badRequestResponse(w, r, err)
-		return
-	}
-
-	// Get the file from the form (ensure your HTML form uses "file" as the field name)
-	file, _, err := r.FormFile("qrcode")
-	if err != nil {
-		e := fmt.Errorf("failed to read file: %w", err)
-		app.badRequestResponse(w, r, e)
-		return
-	}
-
-	metaData := r.MultipartForm.File["qrcode"][0]
-	defer file.Close()
-
-	// TODO: updload to digital ocean below
-	env := envelope{
-		"status":    "uploaded",
-		"file_name": metaData.Filename,
-		"file_size": metaData.Size,
-		// "file_path": uploadPath,
-	}
-
-	err = app.writeJSON(w, http.StatusOK, env, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
-}
-
 func (app *application) uploadTournamentPoster(w http.ResponseWriter, r *http.Request) {
 	uuid := chi.URLParam(r, "uuid")
 	formFileName := "poster"
@@ -269,10 +235,51 @@ func (app *application) deleteTournamentPoster(w http.ResponseWriter, r *http.Re
 	}
 }
 
-func (app *application) downloadTournamentPoster(w http.ResponseWriter, r *http.Request) {
+func (app *application) listTournaments(w http.ResponseWriter, r *http.Request) {
+	startDate := r.URL.Query().Get("start_date")
+	endDate := r.URL.Query().Get("end_date")
+
+	var tournaments []repository.Tournament
+	var err error
+
+	if startDate != "" && endDate != "" {
+		tournaments, err = app.repository.Tournaments.GetByDateRange(startDate, endDate)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	} else {
+		tournaments, err = app.repository.Tournaments.GetAll()
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
+
+	env := envelope{
+		"tournaments": tournaments,
+	}
+
+	err = app.writeJSON(w, http.StatusOK, env, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) getTournament(w http.ResponseWriter, r *http.Request) {
 	uuid := chi.URLParam(r, "uuid")
-	if uuid == "" {
-		app.badRequestResponse(w, r, fmt.Errorf("missing uuid"))
+	tournament, err := app.repository.Tournaments.GetByUUID(uuid)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 		return
+	}
+
+	env := envelope{
+		"tournament": tournament,
+	}
+
+	err = app.writeJSON(w, http.StatusOK, env, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 	}
 }

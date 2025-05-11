@@ -5,46 +5,51 @@ import (
 	"net/http"
 	"strings"
 
+	// "github.com/ctfrancia/buho/internal/adapter/handlers"
 	"github.com/ctfrancia/buho/internal/auth"
+	"github.com/ctfrancia/buho/internal/core/ports"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
 )
 
-func (app *application) routes() *chi.Mux {
+func routes(h *ports.HTTPHandlers) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Route("/v1", func(r chi.Router) {
-		r.Get("/healthcheck", app.healthcheck)
-		r.Route("/players", func(r chi.Router) {
-			r.Get("/", app.listPlayers)
-			r.Post("/", app.createPlayer)
-			r.Get("/email/{email}", app.showUserByEmail)
-			r.Get("/search", app.searchUsers)
-		})
-		r.Route("/tournaments", func(r chi.Router) {
-			r.Get("/", app.listTournaments)
-			r.Use(app.authorizationMiddleware)
-			r.Post("/new", app.createTournament)
-			r.Route("/{uuid}", func(r chi.Router) {
-				r.Get("/", app.getTournament)
-				r.Route("/poster", func(r chi.Router) {
-					r.Delete("/", app.deleteTournamentPoster)
-					r.Post("/upload", app.uploadTournamentPoster)
+	/*
+		r.Route("/v1", func(r chi.Router) {
+			r.Get("/healthcheck", h.healthcheck)
+			r.Route("/players", func(r chi.Router) {
+				r.Get("/", app.listPlayers)
+				r.Post("/", app.createPlayer)
+				r.Get("/email/{email}", app.showUserByEmail)
+				r.Get("/search", app.searchUsers)
+			})
+			r.Route("/tournaments", func(r chi.Router) {
+				r.Get("/", app.listTournaments)
+				r.Use(app.authorizationMiddleware)
+				r.Post("/new", app.createTournament)
+				r.Route("/{uuid}", func(r chi.Router) {
+					r.Get("/", app.getTournament)
+					r.Route("/poster", func(r chi.Router) {
+						r.Delete("/", app.deleteTournamentPoster)
+						r.Post("/upload", app.uploadTournamentPoster)
+					})
+					r.Patch("/data", app.updateTournament)
 				})
-				r.Patch("/data", app.updateTournament)
+			})
+			r.Route("/auth", func(r chi.Router) {
+				r.Post("/login", app.login)
+				r.Post("/refresh", app.refresh)
+				r.Route("/new", func(r chi.Router) {
+					r.Post("/consumer", app.newApiConsumer)
+				})
 			})
 		})
-		r.Route("/auth", func(r chi.Router) {
-			r.Post("/login", app.login)
-			r.Post("/refresh", app.refresh)
-			r.Route("/new", func(r chi.Router) {
-				r.Post("/consumer", app.newApiConsumer)
-			})
-		})
-	})
+	*/
+	r.Get("/", h.healthcheck)
 
 	// Print out all routes
 	walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {

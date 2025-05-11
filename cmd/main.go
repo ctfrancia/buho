@@ -1,6 +1,40 @@
 package main
 
 import (
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/ctfrancia/buho/internal/adapter/handlers"
+	"github.com/ctfrancia/buho/internal/adapter/logging"
+	"github.com/ctfrancia/buho/internal/adapter/repository"
+	"github.com/ctfrancia/buho/internal/core/service"
+)
+
+func main() {
+	env := os.Getenv("ENV")
+	logger := logging.NewZapLogger(env)
+	cfg, err := newConfig(env)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	store := repository.NewPostgresRepository()
+	tService := service.NewTournamentService(store)
+	// uService := service.NewUserService(store)
+	handlers := handlers.NewHTTPHandler(tService)
+
+	srv := http.Server{
+		Addr:         cfg.addr,
+		Handler:      routes(handlers),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+}
+
+/*
+import (
 	"log"
 	"net/http"
 	"os"
@@ -111,3 +145,4 @@ func openDB(cfg *Config) (*gorm.DB, error) {
 
 	return db, nil
 }
+*/

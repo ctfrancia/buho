@@ -1,5 +1,23 @@
-package logger
+package logging
 
+import (
+	"io"
+	"os"
+)
+
+type ConsoleLogger struct {
+	level LogLevel
+	out   io.Writer
+}
+
+func NewConsoleLogger(level LogLevel) *ConsoleLogger {
+	return &ConsoleLogger{
+		level: level,
+		out:   os.Stdout,
+	}
+}
+
+/*
 import (
 	"os"
 
@@ -7,6 +25,10 @@ import (
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
+
+type Logger struct {
+	logger *zap.Logger
+}
 
 func New(env string) *zap.Logger {
 	var core zapcore.Core
@@ -60,3 +82,4 @@ func New(env string) *zap.Logger {
 	zapLogger := zap.New(core, zap.AddCaller())
 	return zapLogger
 }
+*/

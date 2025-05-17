@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"github.com/ctfrancia/buho/internal/core/ports"
@@ -15,5 +15,5 @@ func NewTournamentService(tp ports.TournamentRepository) *TournamentService {
 }
 
 func (ts *TournamentService) CreateTournament(tournament any) error {
-	return ts.repo.CreateTrournament(tournament)
+	return nil
 }

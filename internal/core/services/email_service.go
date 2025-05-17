@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"github.com/ctfrancia/buho/internal/core/ports"

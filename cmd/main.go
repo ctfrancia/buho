@@ -4,11 +4,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-
-	"github.com/ctfrancia/buho/internal/adapter/handlers"
-	"github.com/ctfrancia/buho/internal/adapter/logging"
-	"github.com/ctfrancia/buho/internal/adapter/repository"
-	"github.com/ctfrancia/buho/internal/core/service"
 )
 
 func main() {
@@ -20,9 +15,9 @@ func main() {
 	}
 
 	store := repository.NewPostgresRepository()
-	tService := service.NewTournamentService(store)
+	// tService := service.NewTournamentService(store)
 	// uService := service.NewUserService(store)
-	handlers := handlers.NewHTTPHandler(tService)
+	// handlers := handlers.NewHTTPHandler(tService)
 
 	srv := http.Server{
 		Addr:         cfg.addr,

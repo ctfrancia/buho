@@ -1,7 +1,7 @@
 package ports
 
 // UserService is the interface for interacting with the User Service
-type UserService interface {
+type serService interface {
 	CreateUser(user any) error
 	/*
 		GetByUUID(uuid string) (repository.Tournament, error)

@@ -5,20 +5,23 @@ import (
 
 	"github.com/ctfrancia/buho/internal/adapters/primary/rest/handlers"
 	"github.com/ctfrancia/buho/internal/core/ports"
+	"github.com/ctfrancia/buho/internal/core/ports/primary"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"go.uber.org/zap"
+	// "go.uber.org/zap"
 )
 
 type Router struct {
 	tournamentService ports.TournamentService
-	userService       ports.UserService
+	userService       any
+	authService       primary.AuthPort
 }
 
-func NewRouter(ts ports.TournamentService, us ports.UserService) *chi.Mux {
+func NewRouter(ts ports.TournamentService, us any, as primary.AuthPort) *chi.Mux {
 	router := &Router{
 		tournamentService: ts,
 		userService:       us,
+		authService:       as,
 	}
 
 	return router.setupRoutes()
@@ -38,19 +41,19 @@ func (r *Router) setupRoutes() *chi.Mux {
 	// userHandler := handlers.NewUserHandler(r.userService)
 
 	mux.Route("/v1", func(r chi.Router) {
-		mux.Get("/", miscHandler.Healthcheck)
+		mux.Get("/healthcheck", miscHandler.Healthcheck)
 		// Tournaments
 		mux.Route("/tournaments", func(r chi.Router) {
 			// r.Get("/", tournamentHandler.ListTournaments)
-			r.Post("/", tournamentHandler.CreateTournament)
+			mux.Post("/", tournamentHandler.CreateTournament)
 		})
 		// Auth
 		r.Route("/auth", func(r chi.Router) {
-			r.Post("/login", app.login)
-			r.Post("/refresh", app.refresh)
-			r.Route("/new", func(r chi.Router) {
-				r.Post("/consumer", app.newApiConsumer)
-			})
+			mux.Post("/login", authHandler.Login)
+			// mux.Post("/refresh", auth.refresh)
+			// mux.Route("/new", func(r chi.Router) {
+			// r.Post("/consumer", app.newApiConsumer)
+			// })
 		})
 	})
 	/*

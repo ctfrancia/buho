@@ -13,8 +13,8 @@ var (
 	ErrEmailAlreadyExists = errors.New("email already exists")
 )
 
-type AuthRepositoryPort interface {
-	Create(ctx context.Context, auth domain.Auth) (domain.Auth, error)
+type ConsumerRepositoryPort interface {
+	CreateNewConsumer(ctx context.Context, consumer domain.Consumer) (domain.Consumer, error)
 	// GetByEmail(ctx context.Context, email string) (domain.Auth, error)
 	// Update(ctx context.Context, auth domain.Auth) (domain.Auth, error)
 }

@@ -3,25 +3,24 @@ package rest
 import (
 	"net/http"
 
-	"github.com/ctfrancia/buho/internal/adapters/primary/rest/handlers"
-	"github.com/ctfrancia/buho/internal/core/ports"
-	"github.com/ctfrancia/buho/internal/core/ports/primary"
+	"github.com/ctfrancia/buho/internal/ports/primary"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	// "go.uber.org/zap"
+	"go.uber.org/zap"
 )
 
 type Router struct {
-	tournamentService ports.TournamentService
-	userService       any
-	authService       primary.AuthPort
+	// tournamentService ports.TournamentService
+	// userService       any
+	authService primary.ConsumerServicePort
 }
 
-func NewRouter(ts ports.TournamentService, us any, as primary.AuthPort) *chi.Mux {
+func NewRouter(as primary.ConsumerServicePort) *chi.Mux {
 	router := &Router{
-		tournamentService: ts,
-		userService:       us,
-		authService:       as,
+		// tournamentService: ts,
+		// userService:       us,
+		authService: as,
 	}
 
 	return router.setupRoutes()
@@ -37,7 +36,7 @@ func (r *Router) setupRoutes() *chi.Mux {
 
 	miscHandler := handlers.NewMiscHandler()
 	tournamentHandler := handlers.NewTournamentHandler(r.tournamentService)
-	authHandler := handlers.NewAuthHandler(r.authService)
+	consumerHandler := handlers.NewAuthHandler(r.authService)
 	// userHandler := handlers.NewUserHandler(r.userService)
 
 	mux.Route("/v1", func(r chi.Router) {

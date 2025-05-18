@@ -1,4 +1,4 @@
-package main
+package repository
 
 import (
 	"errors"
@@ -18,13 +18,13 @@ type Config struct {
 	idleTimeout  time.Duration
 	readTimeout  time.Duration
 	writeTimeout time.Duration
-	db           db
-	auth         authStruct
-	sftp         sftpStruct
+	DB           DB
+	auth         AuthStruct
+	SFTP         SFTPStruct
 	digitalOcean digitalOcean
 }
 
-type sftpStruct struct {
+type SFTPStruct struct {
 	addr           string
 	port           int
 	publicKeyName  string
@@ -32,14 +32,14 @@ type sftpStruct struct {
 	privateKeyPath string
 }
 
-type db struct {
-	dsn          string
+type DB struct {
+	DSN          string
 	maxOpenConns int
 	maxIdleConns int
 	maxIdleTime  time.Duration
 }
 
-type authStruct struct {
+type AuthStruct struct {
 	privateKeyPath string
 	publicKeyPath  string
 	secretKey      string
@@ -52,21 +52,21 @@ type digitalOcean struct {
 	bucket          string
 }
 
-func newConfig(env string) (*Config, error) {
+func NewConfig(env string) (*Config, error) {
 	c := &Config{
 		env:          env,
 		addr:         ":4000",
 		idleTimeout:  2 * time.Minute,
 		readTimeout:  5 * time.Second,
 		writeTimeout: 10 * time.Second,
-		db: db{
-			dsn: os.Getenv("BUHO_DB_DSN"),
+		DB: DB{
+			DSN: os.Getenv("BUHO_DB_DSN"),
 		},
-		auth: authStruct{
+		auth: AuthStruct{
 			privateKeyPath: "internal/keys/jwt/private.pem",
 			publicKeyPath:  "internal/keys/jwt/public.pem",
 		},
-		sftp: sftpStruct{
+		SFTP: SFTPStruct{
 			addr:           "localhost",
 			port:           2022,
 			publicKeyPath:  "internal/keys/sftp/public.pem",

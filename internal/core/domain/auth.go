@@ -5,7 +5,7 @@ import (
 )
 
 // Auth represents the core domain entity for authentication
-type Auth struct {
+type Consumer struct {
 	ID                 int64     `json:"id"`
 	UUID               string    `json:"uuid"`
 	FirstName          string    `json:"first_name"`

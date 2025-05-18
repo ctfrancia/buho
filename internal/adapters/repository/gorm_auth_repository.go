@@ -1,18 +1,17 @@
 package repository
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
-
-	"context"
-	"time"
 
 	"github.com/ctfrancia/buho/internal/core/domain"
 	"github.com/ctfrancia/buho/internal/ports/secondary"
 )
 
-type AuthModel struct {
+type ConsumerModel struct {
 	gorm.Model
 	UUID               string    `gorm:"uniqueIndex;not null"`
 	FirstName          string    `gorm:"not null"`
@@ -24,25 +23,26 @@ type AuthModel struct {
 	RefreshTokenExpiry time.Time `gorm:""`
 }
 
+// GormAuthRepository is a struct that defines the repository for the auth
 type GormAuthRepository struct {
 	db *gorm.DB
 }
 
 // NewGormAuthRepository creates a new GORM auth repository
-func NewGormAuthRepository(db *gorm.DB) secondary.AuthRepositoryPort {
+func NewGormAuthRepository(db *gorm.DB) secondary.ConsumerRepositoryPort {
 	return &GormAuthRepository{
 		db: db,
 	}
 }
 
 // TableName overrides the table name used by GORM
-func (AuthModel) TableName() string {
-	return "auth"
+func (ConsumerModel) TableName() string {
+	return "consumer"
 }
 
 // toDomain converts AuthModel to domain.Auth
-func (r *GormAuthRepository) toDomain(model AuthModel) domain.Auth {
-	return domain.Auth{
+func (r *GormAuthRepository) toDomain(model ConsumerModel) domain.Consumer {
+	return domain.Consumer{
 		ID:                 int64(model.ID),
 		UUID:               model.UUID,
 		FirstName:          model.FirstName,
@@ -58,12 +58,12 @@ func (r *GormAuthRepository) toDomain(model AuthModel) domain.Auth {
 }
 
 // toModel converts domain.Auth to AuthModel
-func (r *GormAuthRepository) toModel(auth domain.Auth) AuthModel {
-	return AuthModel{
+func (r *GormAuthRepository) toModel(auth domain.Consumer) ConsumerModel {
+	return ConsumerModel{
 		Model: gorm.Model{
-			ID:        uint(auth.ID),
-			CreatedAt: auth.CreatedAt,
-			UpdatedAt: auth.UpdatedAt,
+			// ID:        uint(auth.ID),
+			// CreatedAt: auth.CreatedAt,
+			// UpdatedAt: auth.UpdatedAt,
 		},
 		UUID:               auth.UUID,
 		FirstName:          auth.FirstName,
@@ -77,7 +77,7 @@ func (r *GormAuthRepository) toModel(auth domain.Auth) AuthModel {
 }
 
 // Create persists a new auth record
-func (r *GormAuthRepository) Create(ctx context.Context, auth domain.Auth) (domain.Auth, error) {
+func (r *GormAuthRepository) CreateNewConsumer(ctx context.Context, consumer domain.Consumer) (domain.Consumer, error) {
 	model := r.toModel(auth)
 
 	result := r.db.WithContext(ctx).Create(&model)

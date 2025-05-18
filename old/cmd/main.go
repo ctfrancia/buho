@@ -62,7 +62,7 @@ type application struct {
 func main() {
 	env := os.Getenv("ENV")
 	logger := logger.New(env)
-	cfg, err := newConfig(env)
+	cfg, err := newconfig(env)
 	if err != nil {
 		logger.Fatal("error creating config", zap.Error(err))
 		os.Exit(1)

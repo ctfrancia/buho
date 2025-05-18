@@ -1,0 +1,5 @@
+{"level":"fatal","time":"2025-03-29T20:40:20.648+0100","caller":"cmd/main.go:39","msg":"error creating config","error":"no digital ocean credentials set"}
+{"level":"fatal","time":"2025-03-29T20:40:41.560+0100","caller":"cmd/main.go:39","msg":"error creating config","error":"no digital ocean credentials set"}
+{"level":"fatal","time":"2025-03-30T20:08:06.192+0200","caller":"cmd/main.go:38","msg":"error creating config","error":"no digital ocean credentials set"}
+{"level":"fatal","time":"2025-03-30T20:10:52.779+0200","caller":"cmd/main.go:38","msg":"error creating config","error":"no digital ocean credentials set"}
+{"level":"fatal","time":"2025-03-30T20:12:21.786+0200","caller":"cmd/main.go:38","msg":"error creating config","error":"no digital ocean credentials set"}

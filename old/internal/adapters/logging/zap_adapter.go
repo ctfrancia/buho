@@ -10,7 +10,7 @@ import (
 )
 
 type ZapAdapter struct {
-logger *zap.Logger
+	logger *zap.Logger
 }
 
 // NewZapLogger creates a new zap logger based on environment

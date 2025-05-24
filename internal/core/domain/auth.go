@@ -4,6 +4,13 @@ import (
 	"time"
 )
 
+// LoginRequest represents the request body for the login endpoint
+type LoginRequest struct {
+	Email    string `json:"email,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password"`
+}
+
 // Auth represents the core domain entity for authentication
 type Consumer struct {
 	ID                 int64     `json:"id"`

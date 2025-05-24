@@ -2,11 +2,12 @@ package services
 
 import (
 	"context"
-	"github.com/ctfrancia/buho/internal/ports/secondary"
+	"github.com/ctfrancia/buho/internal/core/domain"
+	"github.com/ctfrancia/buho/internal/core/ports"
 )
 
 type ConsumerService struct {
-	repo secondary.ConsumerRepositoryPort
+	repo ports.AuthRepository
 }
 
 func NewConsumerService(repo secondary.ConsumerRepositoryPort) *ConsumerService {

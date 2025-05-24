@@ -10,12 +10,16 @@ type ConsumerHandlers struct {
 	cService primary.ConsumerServicePort
 }
 
-func NewConsumerHandlers(cService primary.ConsumerServicePort) *ConsumerHandlers {
+func NewConsumerHandler(cService primary.ConsumerServicePort) *ConsumerHandlers {
 	return &ConsumerHandlers{
 		cService: cService,
 	}
 }
 
 func (h *ConsumerHandlers) CreateNewAPIConsumer(ctx context.Context) (any, error) {
-	return h.cService.CreateNewAPIConsumer(ctx)
+	return nil, nil
+}
+
+func (h *ConsumerHandlers) GetAPIConsumer(ctx context.Context, id string) (any, error) {
+	return nil, nil
 }

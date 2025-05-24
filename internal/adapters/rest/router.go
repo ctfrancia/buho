@@ -3,7 +3,8 @@ package rest
 import (
 	"net/http"
 
-	"github.com/ctfrancia/buho/internal/ports/primary"
+	"github.com/ctfrancia/buho/internal/adapters/rest/handlers"
+	"github.com/ctfrancia/buho/internal/core/ports"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -11,16 +12,14 @@ import (
 )
 
 type Router struct {
-	// tournamentService ports.TournamentService
-	// userService       any
-	authService primary.ConsumerServicePort
+	Logger             ports.Logger
+	HealthCheckHandler ports.HealthCheckHandler
 }
 
-func NewRouter(as primary.ConsumerServicePort) *chi.Mux {
+func NewRouter(hch ports.HealthCheckService, l ports.Logger) *chi.Mux {
 	router := &Router{
-		// tournamentService: ts,
-		// userService:       us,
-		authService: as,
+		HealthCheckHandler: handlers.NewHealthCheckHandler(hch),
+		Logger:             l,
 	}
 
 	return router.setupRoutes()
@@ -34,21 +33,16 @@ func (r *Router) setupRoutes() *chi.Mux {
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
 
-	miscHandler := handlers.NewMiscHandler()
-	tournamentHandler := handlers.NewTournamentHandler(r.tournamentService)
-	consumerHandler := handlers.NewAuthHandler(r.authService)
-	// userHandler := handlers.NewUserHandler(r.userService)
-
-	mux.Route("/v1", func(r chi.Router) {
-		mux.Get("/healthcheck", miscHandler.Healthcheck)
+	mux.Route("/v1", func(router chi.Router) {
+		mux.Get("/healthcheck", r.HealthCheckHandler.Handle)
 		// Tournaments
 		mux.Route("/tournaments", func(r chi.Router) {
 			// r.Get("/", tournamentHandler.ListTournaments)
-			mux.Post("/", tournamentHandler.CreateTournament)
+			//mux.Post("/", tournamentHandler.CreateTournament)
 		})
 		// Auth
-		r.Route("/auth", func(r chi.Router) {
-			mux.Post("/login", authHandler.Login)
+		router.Route("/auth", func(r chi.Router) {
+			// mux.Post("/login", authHandler.Login)
 			// mux.Post("/refresh", auth.refresh)
 			// mux.Route("/new", func(r chi.Router) {
 			// r.Post("/consumer", app.newApiConsumer)
@@ -62,15 +56,17 @@ func (r *Router) setupRoutes() *chi.Mux {
 			zap.String("method", method),
 			zap.String("route", route),
 		}
-		app.logger.Info("route", fields...)
+		r.Logger.Info("route", fields...)
 		return nil
 	}
 
-	if err := chi.Walk(r, walkFunc); err != nil {
-		fields := []zap.Field{
-			zap.String("err", err.Error()),
+	if err := chi.Walk(mux, walkFunc); err != nil {
+		fields := []ports.Field{
+			ports.Field{Key: "err", Value: err.Error()},
+			// ports.Field{Key: "err", Value: err.Error()},
+			// zap.String("err", err.Error()),
 		}
-		app.logger.Error("Walk err", fields...)
+		r.Logger.Error("Walk err", fields...)
 	}
 
 	return mux

@@ -28,9 +28,10 @@ func main() {
 	authStore := repository.NewGormAuthRepository(db)
 
 	// create primary services
-	consumerService := services.NewConsumerService(authStore)
+	hcs := services.NewHealthCheckService()
+	// consumerService := services.NewConsumerService(authStore)
 
-	routes := rest.NewRouter(consumerService)
+	routes := rest.NewRouter(hcs)
 
 	srv := &http.Server{
 		Addr:    ":8080",

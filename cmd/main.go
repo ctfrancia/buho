@@ -8,8 +8,6 @@ import (
 	"github.com/ctfrancia/buho/internal/adapters/repository"
 	"github.com/ctfrancia/buho/internal/adapters/rest"
 	"github.com/ctfrancia/buho/internal/core/services"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -19,7 +17,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := openDB(serverConfig)
+	// create database
+	db, err := repository.NewDatabase()
 	if err != nil {
 		os.Exit(1)
 	}
@@ -43,16 +42,4 @@ func main() {
 		fmt.Println("error starting server: ", err)
 		os.Exit(1)
 	}
-}
-
-func openDB(cfg *repository.Config) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(cfg.DB.DSN), &gorm.Config{TranslateError: true})
-	if err != nil {
-		return nil, err
-	}
-
-	// db.Debug() for debugging
-	// db.AutoMigrate(&repository.Auth{}, &repository.Organizer{}, &repository.Location{}, &repository.Tournament{})
-
-	return db, nil
 }

@@ -3,7 +3,6 @@ package rest
 import (
 	"github.com/ctfrancia/buho/internal/adapters/rest/handlers"
 	"github.com/ctfrancia/buho/internal/core/ports"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -11,13 +10,18 @@ import (
 type Router struct {
 	HealthCheckHandler ports.HealthCheckHandler
 	AuthHandler        ports.AuthHandler
+	TournamentHandler  ports.TournamentHandler
+	MatchHandler       ports.MatchHandler
 	Logger             ports.Logger
 }
 
-func NewRouter(hch ports.HealthCheckService, as ports.AuthService, l ports.Logger) *chi.Mux {
+func NewRouter(hch ports.HealthCheckService, as ports.AuthService, ms ports.MatchService, l ports.Logger) *chi.Mux {
+	httpResponses := handlers.NewHandlerResponse(l)
+
 	router := &Router{
 		HealthCheckHandler: handlers.NewHealthCheckHandler(hch),
-		AuthHandler:        handlers.NewAuthHandler(as),
+		AuthHandler:        handlers.NewAuthHandler(as, httpResponses),
+		MatchHandler:       handlers.NewMatchHandler(ms),
 		Logger:             l,
 	}
 
@@ -48,25 +52,6 @@ func (r *Router) setupRoutes() *chi.Mux {
 			// })
 		})
 	})
-
-	// Print out all routes
-	/*
-		walkFunc := func(method string, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
-			fields := []zap.Field{
-				zap.String("method", method),
-				zap.String("route", route),
-			}
-			r.Logger.Info("route", fields...)
-			return nil
-		}
-
-		if err := chi.Walk(mux, walkFunc); err != nil {
-			fields := []zap.Field{
-				zap.String("err", err.Error()),
-			}
-			r.Logger.Error("Walk err", fields...)
-		}
-	*/
 
 	return mux
 }

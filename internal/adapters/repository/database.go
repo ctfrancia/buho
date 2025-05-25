@@ -16,13 +16,7 @@ type Database struct {
 }
 
 // NewDatabase creates a new database connection
-func NewDatabase() (*Database, error) {
-	// Database connection string
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = "host=localhost user=buho_admin password=pa55word dbname=buho port=5432 sslmode=disable"
-	}
-
+func NewDatabase(cfg models.DB) (*Database, error) {
 	// Configure GORM logger
 	gormLogger := logger.New(
 		log.New(os.Stdout, "\r\n", log.LstdFlags),
@@ -33,7 +27,7 @@ func NewDatabase() (*Database, error) {
 	)
 
 	// Connect to database
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(cfg.DSN), &gorm.Config{
 		Logger: gormLogger,
 	})
 	if err != nil {

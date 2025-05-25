@@ -5,10 +5,8 @@ import (
 	"errors"
 	"time"
 
+	domain "github.com/ctfrancia/buho/internal/core/domain/dto"
 	"gorm.io/gorm"
-
-	"github.com/ctfrancia/buho/internal/core/domain"
-	"github.com/ctfrancia/buho/internal/ports/secondary"
 )
 
 type ConsumerModel struct {
@@ -29,7 +27,7 @@ type GormAuthRepository struct {
 }
 
 // NewGormAuthRepository creates a new GORM auth repository
-func NewGormAuthRepository(db *gorm.DB) secondary.ConsumerRepositoryPort {
+func NewGormAuthRepository(db *gorm.DB) *GormAuthRepository {
 	return &GormAuthRepository{
 		db: db,
 	}
@@ -43,7 +41,6 @@ func (ConsumerModel) TableName() string {
 // toDomain converts AuthModel to domain.Auth
 func (r *GormAuthRepository) toDomain(model ConsumerModel) domain.Consumer {
 	return domain.Consumer{
-		ID:                 int64(model.ID),
 		UUID:               model.UUID,
 		FirstName:          model.FirstName,
 		LastName:           model.LastName,
@@ -52,19 +49,12 @@ func (r *GormAuthRepository) toDomain(model ConsumerModel) domain.Consumer {
 		Website:            model.Website,
 		RefreshToken:       model.RefreshToken,
 		RefreshTokenExpiry: model.RefreshTokenExpiry,
-		CreatedAt:          model.CreatedAt,
-		UpdatedAt:          model.UpdatedAt,
 	}
 }
 
 // toModel converts domain.Auth to AuthModel
 func (r *GormAuthRepository) toModel(auth domain.Consumer) ConsumerModel {
 	return ConsumerModel{
-		Model: gorm.Model{
-			// ID:        uint(auth.ID),
-			// CreatedAt: auth.CreatedAt,
-			// UpdatedAt: auth.UpdatedAt,
-		},
 		UUID:               auth.UUID,
 		FirstName:          auth.FirstName,
 		LastName:           auth.LastName,

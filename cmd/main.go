@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -12,25 +13,32 @@ import (
 
 func main() {
 	env := os.Getenv("ENV")
-	serverConfig, err := repository.NewConfig(env)
+	serverConfig, err := repository.NewServerConfig(env)
 	if err != nil {
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	// create database
-	db, err := repository.NewDatabase()
+	db, err := repository.NewDatabase(serverConfig.DB)
 	if err != nil {
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	// create secondary adapters
-	authStore := repository.NewGormAuthRepository(db)
+	// authStore := repository.NewGormAuthRepository(db.DB)
+	// playersStore := repository.NewGormPlayerRepository(db.DB)
+	// tournamentStore := repository.NewGormTournamentRepository(db.DB)
+	// tournamentStore := repository.NewGormTournamentRepository(db.DB)
+	matchStore := repository.NewGormMatchRepository(db.DB)
 
 	// create primary services
 	hcs := services.NewHealthCheckService()
 	// consumerService := services.NewConsumerService(authStore)
+	// tournamentService := services.NewTournamentService(tournamentStore)
+	apiClientService := services.NewApiClientService(authStore)
+	matchService := services.NewMatchService(matchStore)
 
-	routes := rest.NewRouter(hcs)
+	routes := rest.NewRouter(hcs, apiClientService, matchService)
 
 	srv := &http.Server{
 		Addr:    ":8080",

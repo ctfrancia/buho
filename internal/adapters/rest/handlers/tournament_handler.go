@@ -6,15 +6,15 @@ import (
 )
 
 type TournamentHandler struct {
-	tService ports.TournamentService
+	service ports.TournamentService
 }
 
-func NewTournamentHandler(tService ports.TournamentService) *TournamentHandler {
+func NewTournamentHandler(service ports.TournamentService) *TournamentHandler {
 	return &TournamentHandler{
-		tService: tService,
+		service: service,
 	}
 }
 
 func (h *TournamentHandler) ProcessNewTournamentRequest(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	// TODO: Implement
 }

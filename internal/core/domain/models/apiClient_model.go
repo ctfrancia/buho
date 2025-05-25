@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// this will be the last thing that we do
 // APIClient represents a client application that can access the API
 type APIClient struct {
 	ID        uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`

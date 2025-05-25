@@ -9,18 +9,18 @@ import (
 
 type Router struct {
 	HealthCheckHandler ports.HealthCheckHandler
-	AuthHandler        ports.AuthHandler
+	ApiClient          ports.ApiClientHandler
 	TournamentHandler  ports.TournamentHandler
 	MatchHandler       ports.MatchHandler
 	Logger             ports.Logger
 }
 
-func NewRouter(hch ports.HealthCheckService, as ports.AuthService, ms ports.MatchService, l ports.Logger) *chi.Mux {
+func NewRouter(hch ports.HealthCheckService, as ports.ApiClientService, ms ports.MatchService, l ports.Logger) *chi.Mux {
 	httpResponses := handlers.NewHandlerResponse(l)
 
 	router := &Router{
 		HealthCheckHandler: handlers.NewHealthCheckHandler(hch),
-		AuthHandler:        handlers.NewAuthHandler(as, httpResponses),
+		ApiClient:          handlers.NewApiClientHandler(as, httpResponses),
 		MatchHandler:       handlers.NewMatchHandler(ms),
 		Logger:             l,
 	}

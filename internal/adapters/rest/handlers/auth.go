@@ -1,32 +1,24 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
-	"github.com/ctfrancia/buho/internal/core/domain"
 	"github.com/ctfrancia/buho/internal/core/ports"
 )
 
-type AuthHandler struct {
+type ApiClientHandler struct {
 	resp        ports.HttpResponse
 	authService ports.AuthService
 }
 
-func NewAuthHandler(as ports.AuthService, resp ports.HttpResponse) *AuthHandler {
-	return &AuthHandler{
+func NewApiClientHandler(as ports.ApiClientService, resp ports.HttpResponse) *ApiClientHandler {
+	return &ApiClientHandler{
 		resp:        resp,
 		authService: as,
 	}
 }
 
-func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var requestBody domain.LoginRequest
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		badRequestResponse(w, r, err)
-		return
-	}
+func (a *ApiClientHandler) Login(w http.ResponseWriter, r *http.Request) {
 	/*
 		var requestBody model.CreateAuthTokenRequest
 		err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -96,7 +88,7 @@ func (a *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	*/
 }
 
-func (a *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+func (a *ApiClientHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	/*
 		var requestBody model.RefreshTokenRequest
 		err := json.NewDecoder(r.Body).Decode(&requestBody)
@@ -170,7 +162,7 @@ func (a *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	*/
 }
 
-func (a *AuthHandler) NewApiConsumer(w http.ResponseWriter, r *http.Request) {
+func (a *ApiClientHandler) NewApiConsumer(w http.ResponseWriter, r *http.Request) {
 	/*
 		// mashal the request body into a struct
 		var requestBody model.NewAPIConsumerRequest

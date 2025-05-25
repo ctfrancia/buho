@@ -6,6 +6,7 @@ import (
 	"time"
 
 	domain "github.com/ctfrancia/buho/internal/core/domain/dto"
+	"github.com/ctfrancia/buho/internal/core/domain/entities"
 	"gorm.io/gorm"
 )
 
@@ -67,7 +68,7 @@ func (r *GormAuthRepository) toModel(auth domain.Consumer) ConsumerModel {
 }
 
 // Create persists a new auth record
-func (r *GormAuthRepository) CreateNewConsumer(ctx context.Context, consumer domain.Consumer) (domain.Consumer, error) {
+func (r *GormAuthRepository) CreateNewApiClient(ctx context.Context, consumer entities.ApiClient) (domain.Consumer, error) {
 	model := r.toModel(auth)
 
 	result := r.db.WithContext(ctx).Create(&model)

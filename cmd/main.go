@@ -25,7 +25,7 @@ func main() {
 	}
 
 	// create secondary adapters
-	// authStore := repository.NewGormAuthRepository(db.DB)
+	apiClientStore := repository.NewGormAuthRepository(db.DB)
 	// playersStore := repository.NewGormPlayerRepository(db.DB)
 	// tournamentStore := repository.NewGormTournamentRepository(db.DB)
 	// tournamentStore := repository.NewGormTournamentRepository(db.DB)
@@ -35,7 +35,7 @@ func main() {
 	hcs := services.NewHealthCheckService()
 	// consumerService := services.NewConsumerService(authStore)
 	// tournamentService := services.NewTournamentService(tournamentStore)
-	apiClientService := services.NewApiClientService(authStore)
+	apiClientService := services.NewApiClientService(apiClientStore)
 	matchService := services.NewMatchService(matchStore)
 
 	routes := rest.NewRouter(hcs, apiClientService, matchService)

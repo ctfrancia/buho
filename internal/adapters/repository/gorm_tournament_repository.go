@@ -1,5 +1,6 @@
 package repository
 
+/*
 import (
 	"context"
 	"errors"
@@ -54,3 +55,4 @@ func (r *GormTournamentRepository) CreateNewTournament(ctx context.Context, tour
 
 	return r.toDomain(model), nil
 }
+*/

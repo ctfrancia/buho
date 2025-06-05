@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ctfrancia/buho/internal/core/domain/models"
+	"github.com/ctfrancia/buho/internal/adapters/repository/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
